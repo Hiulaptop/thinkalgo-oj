@@ -282,6 +282,12 @@ class ProblemDataView(TitleMixin, ProblemManagerMixin):
             for case in cases_formset.deleted_objects:
                 case.delete()
             ProblemDataCompiler.generate(problem, data, problem.cases.order_by('order'), valid_files)
+            if getattr(settings, 'BRIDGED_R2_PROBLEMS', False):
+                # Local test data (e.g. test case points) just changed; push a fresh,
+                # immutable release to R2 so judges pick up the change. Async since
+                # it uploads a zip and should not block the HTTP response.
+                from judge.tasks.problem import publish_problem_release
+                publish_problem_release.delay(problem.code)
             return HttpResponseRedirect(request.get_full_path())
         return self.render_to_response(self.get_context_data(data_form=data_form, cases_formset=cases_formset,
                                                              valid_files=valid_files))

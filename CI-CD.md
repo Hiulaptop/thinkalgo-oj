@@ -200,10 +200,36 @@ The site bridge sends `problem-version` and `problem-sha256` on each
 submission. Judges with `r2_problems.enabled` download that package into
 `/var/cache/dmoj-problems` and grade from the cache. R2 is never FUSE-mounted.
 
+Each release is immutable and sha256-verified: publishing never overwrites
+an existing version in place, it always creates a new one and points
+`ProblemData` at it. When `BRIDGED_R2_PROBLEMS=True`, saving a problem's test
+data in the admin UI (`/problem/<code>/data`) — including editing test case
+points — automatically queues a celery task
+(`judge.tasks.problem.publish_problem_release`) that builds and uploads a
+fresh release, so judges pick up the change without anyone having to run the
+management command by hand. The task retries a few times on transient R2
+failures; if it keeps failing, the problem keeps grading from its last
+published release until `publish_problem_release` is re-run manually.
+
+Read and delete access to R2 releases (for ops/debugging) goes through
+`python manage.py r2_problem_release {list,show,delete,purge} CODE [VERSION]`:
+- `list CODE` — every published version, with size/last-modified.
+- `show CODE VERSION` — print that version's `manifest.json`.
+- `delete CODE VERSION` — delete one version's objects from R2; if it was the
+  version currently recorded on `ProblemData`, clears those fields too.
+- `purge CODE` — delete every version for a problem (prompts for
+  confirmation unless `--yes` is passed).
+
+Deleting a problem (including via the garbage collector) also purges all of
+its R2 releases automatically, through a `post_delete` signal that queues
+`judge.tasks.problem.purge_problem_release` once the deleting transaction
+commits.
+
 Set GitHub Actions variable `BRIDGED_R2_PROBLEMS=True` only after judges
 understand the new packet fields. Until then, leave it false so missing
-release metadata does not block dispatch. CD injects this into the
-runtime env for `site`/`bridged`/`celery`.
+release metadata does not block dispatch, and the auto-publish/auto-purge
+hooks above stay inert. CD injects this into the runtime env for
+`site`/`bridged`/`celery`.
 
 Rollback for media is `USE_R2_MEDIA=False` followed by a normal CD deployment.
 Rollback for judge R2 mode is `r2_problems.enabled: false` (or

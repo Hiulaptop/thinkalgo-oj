@@ -91,6 +91,22 @@ def contest_problem_delete(sender, instance, **kwargs):
     Submission.objects.filter(contest_object=instance.contest, contest__isnull=True).update(contest_object=None)
 
 
+@receiver(post_delete, sender=Problem)
+def problem_delete_r2_releases(sender, instance, **kwargs):
+    if not getattr(settings, 'BRIDGED_R2_PROBLEMS', False):
+        return
+    code = instance.code
+    # Defer until the deleting transaction actually commits, so a rolled-back
+    # delete (e.g. fast_delete_problem failing midway) never purges a release
+    # that is still in use.
+    transaction.on_commit(lambda: _purge_problem_release(code))
+
+
+def _purge_problem_release(code):  # pragma: no cover - thin wrapper, see judge.tasks.problem
+    from judge.tasks.problem import purge_problem_release
+    return purge_problem_release.delay(code)
+
+
 @receiver(post_save, sender=License)
 def license_update(sender, instance, **kwargs):
     cache.delete(make_template_fragment_key('license_html', (instance.id,)))
