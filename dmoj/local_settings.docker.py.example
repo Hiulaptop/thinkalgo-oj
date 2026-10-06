@@ -101,12 +101,31 @@ if USE_R2_MEDIA:
                 'custom_domain': os.environ.get('R2_MEDIA_CUSTOM_DOMAIN') or None,
                 'querystring_auth': os.environ.get('R2_MEDIA_PRIVATE', 'False') == 'True',
                 'default_acl': None,
+                # Uploads are stored under write-once UUID filenames (judge/views/widgets.py),
+                # so an object's bytes never change and the CDN may hold it indefinitely.
+                'object_parameters': {'CacheControl': 'public, max-age=31536000, immutable'},
             },
         },
         'staticfiles': {
             'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage',
         },
     }
+
+    # New martor images, PDF statements, and admin static-upload files get an
+    # absolute CDN URL baked in at upload time, instead of the relative
+    # /martor/<name>, /pdf/<name>, /static-upload/<name> paths that redirect
+    # through media_redirect() -- a dynamic Django view Cloudflare can't cache
+    # (cf-cache-status: BYPASS). Existing links already stored in the DB are
+    # untouched by this and keep resolving through that redirect view (see
+    # CI-CD.md for the Cloudflare Redirect Rule that gets old links onto the
+    # CDN too, without a DB migration). Submission files and contest replay
+    # data are deliberately excluded: they need Django's access control, and a
+    # public/cached URL would leak other users' submissions.
+    _r2_media_custom_domain = os.environ.get('R2_MEDIA_CUSTOM_DOMAIN')
+    if _r2_media_custom_domain:
+        MARTOR_UPLOAD_URL_PREFIX = 'https://%s/%s' % (_r2_media_custom_domain, MARTOR_UPLOAD_MEDIA_DIR)
+        PDF_STATEMENT_UPLOAD_URL_PREFIX = 'https://%s/%s' % (_r2_media_custom_domain, PDF_STATEMENT_UPLOAD_MEDIA_DIR)
+        STATIC_UPLOAD_URL_PREFIX = 'https://%s/%s' % (_r2_media_custom_domain, STATIC_UPLOAD_MEDIA_DIR)
 
 # bridged runs in its own container; site/celery talk to it over the Docker
 # host network (see docker-compose.production.yml, network_mode: host).

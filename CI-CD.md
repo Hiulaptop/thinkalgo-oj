@@ -190,6 +190,53 @@ R2_MEDIA_PRIVATE=False
 R2_PROBLEMS_BUCKET=thinkcode-problems
 ```
 
+`media.oj.thinkcode.vn` is an R2 custom domain proxied through Cloudflare, so
+media is already served from the edge. R2 stays the origin and the bytes never
+move; the CDN just needs to actually cache what's in front of it instead of
+re-hitting R2 on every request. Three things go into getting *all* media
+(existing and new) off R2's read path, not just new uploads:
+
+**1. Origin headers for new uploads.** The media storage backend sets
+`Cache-Control: public, max-age=31536000, immutable` on every upload
+(`object_parameters` in `dmoj/local_settings.docker.py.example`). Safe because
+uploads land under write-once UUID filenames (`judge/views/widgets.py`), so an
+object's bytes never change. Covers objects uploaded from here on; does
+nothing for what's already in the bucket.
+
+**2. Edge Cache Rule, covers old + new.** A Cloudflare Cache Rule for zone
+`oj.thinkcode.vn` matching hostname `media.oj.thinkcode.vn` -> Cache
+eligibility: Eligible for cache, Edge Cache TTL: Override origin, 1 year. This
+is what actually fixes objects uploaded *before* step 1 existed, since a Cache
+Rule doesn't depend on the object's own headers. No purge step is needed
+anywhere here, unlike site static assets: media filenames are never reused,
+so a cached object can never go stale.
+
+**3. Redirect Rule, closes the gap for old links.** Martor-uploaded images,
+PDF problem statements, and admin-uploaded `static-upload` files are the
+three kinds routed to the CDN. (Submission files and contest replay data are
+deliberately excluded -- they're served through Django specifically for
+access control, and a public/cached URL for them would let anyone who guesses
+or scrapes the link read another user's submission.) New uploads of the three
+included kinds get an absolute `https://media.oj.thinkcode.vn/...` URL baked
+in directly (`MARTOR_UPLOAD_URL_PREFIX` / `PDF_STATEMENT_UPLOAD_URL_PREFIX` /
+`STATIC_UPLOAD_URL_PREFIX` in `dmoj/local_settings.docker.py.example`). But
+every link stored *before* that setting existed is still the old relative
+`/martor/<name>`, `/pdf/<name>`, `/static-upload/<name>` path, which hits
+`media_redirect()` -- a plain Django view Cloudflare can never cache
+(`cf-cache-status: BYPASS`) -- on every single view, even after step 2. Fix
+without a DB migration: a Redirect Rule on zone `oj.thinkcode.vn` matching
+`http.host eq "oj.thinkcode.vn" and (starts_with(http.request.uri.path,
+"/martor/") or starts_with(http.request.uri.path, "/pdf/") or
+starts_with(http.request.uri.path, "/static-upload/"))` -> Dynamic redirect
+(301) to the same path on `media.oj.thinkcode.vn`. The browser then lands
+straight on the cached CDN URL from step 2 instead of round-tripping through
+Django and R2 first.
+
+Verify all three are working with two requests to an *old* link
+(`oj.thinkcode.vn/martor/<name>`, something uploaded before this rollout):
+first request 301s to `media.oj.thinkcode.vn` and reports `cf-cache-status:
+MISS`, second request reports `HIT`.
+
 MariaDB backups use a separate, backup-only R2 credential and the
 `deploy/thinkcode-r2-backup.service` and `.timer` templates. The live database
 remains on MariaDB; the backup job only runs `mariadb-dump --single-transaction`
