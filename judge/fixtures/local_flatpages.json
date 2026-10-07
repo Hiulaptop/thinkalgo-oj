@@ -1,0 +1,32 @@
+[
+    {
+        "model": "flatpages.flatpage",
+        "pk": 9001,
+        "fields": {
+            "url": "/custom_checkers/",
+            "title": "Custom checkers",
+            "content": "# Custom checkers\n\nTrang này mô tả cách sử dụng checker tùy chỉnh trong ThinkAlgo OJ. Bạn có thể chọn checker mặc định hoặc tải checker riêng trong phần quản lý bài toán.",
+            "enable_comments": false,
+            "template_name": "",
+            "registration_required": false,
+            "sites": [
+                1
+            ]
+        }
+    },
+    {
+        "model": "flatpages.flatpage",
+        "pk": 9002,
+        "fields": {
+            "url": "/about/",
+            "title": "Thông tin",
+            "content": "# ThinkAlgo OJ\n\nThinkAlgo OJ là nền tảng online judge chạy trên DMOJ/VNOJ, được cấu hình để phát triển và kiểm thử local tương đương môi trường production.",
+            "enable_comments": false,
+            "template_name": "",
+            "registration_required": false,
+            "sites": [
+                1
+            ]
+        }
+    }
+]

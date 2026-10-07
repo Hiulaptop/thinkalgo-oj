@@ -26,9 +26,9 @@ From the repository root, run:
 docker compose -f docker-compose.local.yml up --build --remove-orphans
 ```
 
-The `site` container runs migrations before starting uWSGI and loads the default
-navigation fixture when the navigation table is empty, so a fresh database is
-ready without a second startup command. Open <http://localhost:8000/>.
+The `site` container runs migrations before starting uWSGI and seeds the default
+navigation plus local FlatPages when those tables are empty, so a fresh database
+is ready without a second startup command. Open <http://localhost:8000/>.
 
 Useful local endpoints:
 
