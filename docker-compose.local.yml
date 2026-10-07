@@ -1,0 +1,191 @@
+# Standalone local stack. This intentionally does not use nginx: Django serves
+# static/media in DEBUG mode and the websocket daemon is published directly on
+# localhost. It mirrors the production processes while adding local DB, Redis,
+# and an S3-compatible R2 endpoint (RustFS).
+
+x-app: &app
+  build:
+    context: .
+  image: thinkalgo-oj:local
+  restart: unless-stopped
+  environment: &app-env
+    DJANGO_SETTINGS_MODULE: dmoj.settings
+    DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-local-only-change-me}
+    DJANGO_DEBUG: ${DJANGO_DEBUG:-True}
+    ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1}
+    CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:-http://localhost:8000,http://127.0.0.1:8000}
+    DB_NAME: ${DB_NAME:-dmoj}
+    DB_USER: ${DB_USER:-dmoj}
+    DB_PASSWORD: ${DB_PASSWORD:-dmoj}
+    DB_HOST: db
+    DB_PORT: "3306"
+    REDIS_URL: redis://redis:6379/0
+    CELERY_BROKER_URL: redis://redis:6379/0
+    CELERY_RESULT_BACKEND: redis://redis:6379/0
+    SITE_NAME: ${SITE_NAME:-ThinkCode OJ (local)}
+    SITE_LONG_NAME: ${SITE_LONG_NAME:-ThinkCode OJ (local)}
+    SITE_FULL_URL: ${SITE_FULL_URL:-http://localhost:8000}
+    DMOJ_CANONICAL: ${DMOJ_CANONICAL:-localhost:8000}
+    EMAIL_BACKEND: django.core.mail.backends.console.EmailBackend
+    # The bridge binds inside its own container and is reached by service name.
+    BRIDGED_JUDGE_HOST: 0.0.0.0
+    BRIDGED_DJANGO_HOST: 0.0.0.0
+    BRIDGED_DJANGO_CONNECT_HOST: bridged
+    # The browser connects directly to the websocket container; application
+    # processes post events through the private Docker network.
+    WSEVENT_POST_HOST: wsevent
+    WSEVENT_POST_PORT: "15101"
+    EVENT_DAEMON_GET_URL: ${EVENT_DAEMON_GET_URL:-ws://localhost:15100/}
+    EVENT_DAEMON_POLL_URL: ${EVENT_DAEMON_POLL_URL:-http://localhost:15102/channels/}
+    # Keep local behavior equivalent to production: media and problem releases
+    # use the same S3 API code path, with RustFS as the default endpoint.
+    USE_R2_MEDIA: ${USE_R2_MEDIA:-True}
+    BRIDGED_R2_PROBLEMS: ${BRIDGED_R2_PROBLEMS:-True}
+    R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID:-minioadmin}
+    R2_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY:-minioadmin}
+    R2_ENDPOINT_URL: ${R2_ENDPOINT_URL:-http://r2:9000}
+    R2_MEDIA_BUCKET: ${R2_MEDIA_BUCKET:-thinkcode-media}
+    R2_PROBLEMS_BUCKET: ${R2_PROBLEMS_BUCKET:-thinkcode-problems}
+    R2_MEDIA_CUSTOM_DOMAIN: ${R2_MEDIA_CUSTOM_DOMAIN:-localhost:9000/thinkcode-media}
+    R2_MEDIA_URL_PROTOCOL: ${R2_MEDIA_URL_PROTOCOL:-http:}
+    R2_MEDIA_PRIVATE: ${R2_MEDIA_PRIVATE:-False}
+  volumes:
+    - local-media:/media
+    - local-problems:/problems
+    - local-log:/site/log
+  depends_on:
+    db:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+    r2-init:
+      condition: service_completed_successfully
+
+services:
+  db:
+    image: mariadb:11.4
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root}
+      MARIADB_DATABASE: ${DB_NAME:-dmoj}
+      MARIADB_USER: ${DB_USER:-dmoj}
+      MARIADB_PASSWORD: ${DB_PASSWORD:-dmoj}
+    volumes:
+      - local-db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - local-redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  r2:
+    image: rustfs/rustfs:1.0.1
+    restart: unless-stopped
+    environment:
+      RUSTFS_ACCESS_KEY: ${R2_ACCESS_KEY_ID:-minioadmin}
+      RUSTFS_SECRET_KEY: ${R2_SECRET_ACCESS_KEY:-minioadmin}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - local-r2-data:/data
+
+  r2-init:
+    image: amazon/aws-cli:2.27.41
+    restart: "no"
+    depends_on:
+      - r2
+    entrypoint: >-
+      /bin/sh -ec '
+      until aws --endpoint-url http://r2:9000 s3api list-buckets >/dev/null 2>&1; do sleep 1; done;
+      for bucket in ${R2_MEDIA_BUCKET:-thinkcode-media} ${R2_PROBLEMS_BUCKET:-thinkcode-problems}; do
+        if ! aws --endpoint-url http://r2:9000 s3api head-bucket --bucket "$${bucket}" >/dev/null 2>&1; then
+          aws --endpoint-url http://r2:9000 s3api create-bucket --bucket "$${bucket}";
+        fi;
+        aws --endpoint-url http://r2:9000 s3api put-bucket-policy --bucket "$${bucket}" --policy "$${R2_PUBLIC_POLICY}";
+      done;
+      '
+    environment:
+      AWS_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID:-minioadmin}
+      AWS_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY:-minioadmin}
+      AWS_DEFAULT_REGION: us-east-1
+      AWS_EC2_METADATA_DISABLED: "true"
+      R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID:-minioadmin}
+      R2_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY:-minioadmin}
+      R2_MEDIA_BUCKET: ${R2_MEDIA_BUCKET:-thinkcode-media}
+      R2_PROBLEMS_BUCKET: ${R2_PROBLEMS_BUCKET:-thinkcode-problems}
+      R2_PUBLIC_POLICY: '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"AWS":["*"]},"Action":["s3:GetObject"],"Resource":["arn:aws:s3:::*/*"]}]}'
+
+  site:
+    <<: *app
+    command: >-
+      /bin/sh -ec '
+      python3 manage.py migrate --noinput;
+      exec uwsgi --module dmoj.wsgi:application --http-socket 0.0.0.0:8000
+      --master --workers 2 --harakiri 600 --need-app;
+      '
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-H", "Host: localhost", "http://127.0.0.1:8000/accounts/login/"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  bridged:
+    <<: *app
+    command: python3 manage.py runbridged
+    stop_signal: SIGINT
+    depends_on:
+      site:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:9998:9998"
+      - "127.0.0.1:9999:9999"
+
+  celery:
+    <<: *app
+    command: celery -A dmoj_celery worker -l info --concurrency=2
+    depends_on:
+      site:
+        condition: service_healthy
+
+  wsevent:
+    <<: *app
+    command: node websocket/daemon.js
+    environment:
+      <<: *app-env
+      WSEVENT_GET_BIND_HOST: 0.0.0.0
+      WSEVENT_POST_BIND_HOST: 0.0.0.0
+      WSEVENT_HTTP_BIND_HOST: 0.0.0.0
+    ports:
+      - "127.0.0.1:15100:15100"
+      - "127.0.0.1:15102:15102"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:15102/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+
+volumes:
+  local-db-data:
+  local-redis-data:
+  local-r2-data:
+  local-media:
+  local-problems:
+  local-log:

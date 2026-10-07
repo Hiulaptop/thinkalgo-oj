@@ -1,30 +1,83 @@
-# ThinkCode OJ
+# ThinkAlgo OJ
 
-Fork of [VNOJ](https://github.com/VNOI-Admin/OJ) / [DMOJ](https://github.com/DMOJ/online-judge). Live at [oj.thinkcode.vn](https://oj.thinkcode.vn/).
+ThinkAlgo OJ is a DMOJ/VNOJ-based online judge. The repository is standalone at
+<https://github.com/Hiulaptop/thinkalgo-oj>.
 
-## Features
+## Local stack (one compose command)
 
-See [DMOJ's feature list](https://github.com/DMOJ/online-judge#features).
+The local stack is defined in **one** file, `docker-compose.local.yml`. It
+starts the same application processes used in production and provides local
+replacements for the services that production keeps outside Compose:
 
-## Installation
+- MariaDB (`db`) with a persistent named volume;
+- Redis (`redis`) with AOF persistence;
+- RustFS (`r2`) as an S3-compatible local R2 endpoint, plus automatic bucket
+  creation (`thinkcode-media` and `thinkcode-problems`);
+- Django/uWSGI (`site`), the bridge (`bridged`), Celery (`celery`), and the
+  websocket/long-poll daemon (`wsevent`).
 
-Native install follows [VNOJ docs](https://vnoi-admin.github.io/vnoj-docs/#/site/installation). Clone this repo instead of DMOJ or VNOJ.
+There is deliberately no nginx. Django serves static/media in local DEBUG mode,
+the site is available directly on port 8000, and websocket traffic is exposed
+directly on localhost.
 
-Production is Docker-only. GitHub Actions builds `ghcr.io/hiulaptop/thinkalgo-oj` and deploys over SSH. Details: [CI-CD.md](CI-CD.md). Runtime settings come from env; the image copies `dmoj/local_settings.docker.py.example` to `dmoj/local_settings.py`.
+From the repository root, run:
 
-### Notes
+```sh
+docker compose -f docker-compose.local.yml up --build --remove-orphans
+```
 
-- Set `DMOJ_PROBLEM_DATA_ROOT` (Docker default: `/problems`). That directory holds the site's working copies. Production judges pull packages from R2 (`BRIDGED_R2_PROBLEMS=True`); they do not read this tree.
-- Leave `ENABLE_FTS = False` unless you configure MySQL full-text search. Background: [VNOI-Admin/OJ#4](https://github.com/VNOI-Admin/OJ/issues/4).
-- Point `CACHES` at Redis so site, bridged, celery, and the judge share cache. Keep redis-py on RESP2 (`CONNECTION_POOL_KWARGS: {protocol: 2}`). That pin was required on Redis 5; production now runs Redis 8 and still uses it.
-- `python3 manage.py loaddata demo` sets the Sites domain to `localhost:8081`. Edit `judge/fixtures/demo.json` or Django admin → Sites.
-- Polygon import needs pandoc ≥ 3.0 on the site image (`Dockerfile` installs 3.10.2).
-- Load MariaDB timezone tables or `CONVERT_TZ` returns `NULL` (`USE_TZ=True`, default user tz `Asia/Ho_Chi_Minh`):
+The `site` container runs migrations before starting uWSGI, so a fresh database
+is ready without a second startup command. Open <http://localhost:8000/>.
 
-      mysql_tzinfo_to_sql /usr/share/zoneinfo | mysql mysql
+Useful local endpoints:
 
-- Put [testlib.h](https://github.com/MikeMirzayanov/testlib/blob/master/testlib.h) on the **judge** image (`thinkcode-judge-server`), in g++'s include path. Precompile the header if compile times hurt.
+| Component | URL |
+| --- | --- |
+| Web site | <http://localhost:8000/> |
+| Browser WebSocket | `ws://localhost:15100/` |
+| WebSocket long-poll fallback | <http://localhost:15102/channels/> |
+| Local R2/S3 API | <http://localhost:9000/> |
+| RustFS console | <http://localhost:9001/> (`minioadmin` / `minioadmin`) |
+| Bridge Django protocol | `127.0.0.1:9998` |
+| Bridge judge protocol | `127.0.0.1:9999` |
 
-## Contributing
+The browser websocket URL is configured as `ws://localhost:15100/`; application
+containers post events privately to `ws://wsevent:15101/`. This avoids relying
+on nginx path proxying while preserving the same event daemon behavior as
+production. The HTTP fallback uses `http://localhost:15102/channels/`.
 
-flake8 on Python. prettier on JS under `websocket/`. See [contributing.md](contributing.md).
+### First local admin account
+
+In another terminal, after the stack is healthy:
+
+```sh
+docker compose -f docker-compose.local.yml exec site python3 manage.py createsuperuser
+```
+
+Follow logs with `docker compose -f docker-compose.local.yml logs -f site`.
+Stop the stack with `docker compose -f docker-compose.local.yml down --remove-orphans`. Named
+volumes preserve the database, Redis, MinIO objects, media, and problem data.
+To intentionally reset all local data, use `docker compose -f docker-compose.local.yml down -v`.
+
+## Cloudflare R2 instead of local MinIO
+
+By default, local development uses RustFS, but it exercises the same S3/R2 code
+paths as production. To point the stack at a **separate staging R2 account and
+separate staging buckets**, copy `.env.local.example` to `.env.local`, fill in
+the R2 values, and run:
+
+```sh
+docker compose --env-file .env.local -f docker-compose.local.yml up --build --remove-orphans
+```
+
+Never put production R2 credentials or production bucket names in a local
+`.env.local`. The file is ignored by Git. `USE_R2_MEDIA=True` and
+`BRIDGED_R2_PROBLEMS=True` are enabled by default so media and problem releases
+follow the production storage path.
+
+## Production
+
+Production uses `docker-compose.production.yml` with the image built and
+published by GitHub Actions. Production MariaDB, Redis, nginx, and judge
+workers remain external to that compose file. See [CI-CD.md](CI-CD.md) for the
+deployment workflow and [contributing.md](contributing.md) for code style.

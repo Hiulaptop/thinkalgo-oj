@@ -511,3 +511,11 @@ try:
         exec(f.read(), globals())
 except IOError:
     pass
+
+# The local compose stack intentionally has no nginx. In DEBUG mode Django
+# serves the baked static files and R2-backed media directly so localhost has
+# the same one-command experience without weakening production (DEBUG=False).
+if settings.DEBUG:
+    from django.conf.urls.static import static
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    urlpatterns += static('/media/', document_root=settings.MEDIA_ROOT)

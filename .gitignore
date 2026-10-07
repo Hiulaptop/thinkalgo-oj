@@ -49,3 +49,4 @@ resources/theme-toggle.css
 .review/
 navbar-preview.html
 resources/logo_b64.txt
+.env.local

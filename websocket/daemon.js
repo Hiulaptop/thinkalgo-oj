@@ -230,6 +230,12 @@ createServer(
   (/** @type {IncomingMessageExtended} */ req, /** @type {ServerResponseExtended} */ res) => {
     const parts = req.url ? new URL(req.url, "http://n") : undefined;
 
+    if (parts?.pathname === "/healthz") {
+      res.writeHead(200, { "Content-Type": "text/plain" });
+      res.end("ok");
+      return;
+    }
+
     if (!parts?.pathname.startsWith("/channels/")) {
       res.writeHead(404, { "Content-Type": "text/plain" });
       res.end("404 Not Found");
