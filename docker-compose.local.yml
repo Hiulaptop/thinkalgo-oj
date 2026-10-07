@@ -132,11 +132,12 @@ services:
   site:
     <<: *app
     command: >-
-      /bin/sh -ec '
+      /bin/sh -ec "
       python3 manage.py migrate --noinput;
+      python3 manage.py shell -c 'from django.core.management import call_command; from judge.models import NavigationBar; call_command(\"loaddata\", \"judge/fixtures/navbar.json\") if not NavigationBar.objects.exists() else None';
       exec uwsgi --module dmoj.wsgi:application --http-socket 0.0.0.0:8000
       --master --workers 2 --harakiri 600 --need-app;
-      '
+      "
     ports:
       - "8000:8000"
     healthcheck:
