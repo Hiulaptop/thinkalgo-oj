@@ -19,7 +19,7 @@
 # updated config, and CI-CD.md for the one-time cutover steps.
 
 x-image: &image
-  image: ${IMAGE_TAG:?IMAGE_TAG must be set, e.g. ghcr.io/hiulaptop/thinkcode-oj:sha-abc1234}
+  image: ${IMAGE_TAG:?IMAGE_TAG must be set, e.g. ghcr.io/hiulaptop/thinkalgo-oj:sha-abc1234}
 
 x-common: &common
   <<: *image

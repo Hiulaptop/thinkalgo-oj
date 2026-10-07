@@ -10,7 +10,7 @@ See [DMOJ's feature list](https://github.com/DMOJ/online-judge#features).
 
 Native install follows [VNOJ docs](https://vnoi-admin.github.io/vnoj-docs/#/site/installation). Clone this repo instead of DMOJ or VNOJ.
 
-Production is Docker-only. GitHub Actions builds `ghcr.io/hiulaptop/thinkcode-oj` and deploys over SSH. Details: [CI-CD.md](CI-CD.md). Runtime settings come from env; the image copies `dmoj/local_settings.docker.py.example` to `dmoj/local_settings.py`.
+Production is Docker-only. GitHub Actions builds `ghcr.io/hiulaptop/thinkalgo-oj` and deploys over SSH. Details: [CI-CD.md](CI-CD.md). Runtime settings come from env; the image copies `dmoj/local_settings.docker.py.example` to `dmoj/local_settings.py`.
 
 ### Notes
 
