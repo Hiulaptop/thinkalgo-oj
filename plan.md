@@ -47,7 +47,7 @@ thinkalgo-oj/
 ### 3.2 Định tuyến nginx
 
 Đã nghiên cứu và thiết kế chi tiết trong change `monorepo-compose-layout`
-(`openspec/changes/monorepo-compose-layout/`, kèm bản nháp cấu hình `nginx-draft/` đã qua
+(`openspec/changes/monorepo-compose-layout/`, kèm cấu hình `deploy/nginx/` đã qua
 `nginx -t` và 36 kịch bản định tuyến). Tóm tắt:
 
 - nginx vẫn native; cấu hình đưa vào repo (`deploy/nginx/`) và được CD đồng bộ.

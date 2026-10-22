@@ -22,7 +22,7 @@ Xem `proposal.md` cho lý do. Hiện trạng đọc từ repo (CI-CD.md, `cd.yml
 5. Bộ nhớ: tiến trình `next-server` standalone ở mức khoảng 157 MB RSS sau ~900 request, ~177 MB sau thêm 4 000 request đồng thời (40 luồng), trang tĩnh, máy 16 GB. Trang SSR có dữ liệu sẽ nặng hơn, chưa đo.
 6. **uwsgi `--http-socket` + `proxy_pass` làm Django thấy `REMOTE_ADDR=127.0.0.1`** với mọi người dùng; `X-Real-IP` đúng nhưng chỉ nằm trong header. Cùng ứng dụng với `--socket` + `uwsgi_pass` thì `REMOTE_ADDR` đúng IP thật. `SERVER_SOFTWARE` không có trong cả hai.
 7. nginx: location có dấu `/` cuối (kể cả `location =`) với `proxy_pass` tự trả 301 khi thiếu dấu `/` và mặc định dùng `http://` tuyệt đối; cần `absolute_redirect off` sau Cloudflare Flexible SSL. `include` tương đối được tính từ thư mục cấu hình chính chứ không phải thư mục của file đang include; `proxy_read_timeout` đặt hai lần trong một location là lỗi `[emerg]`.
-8. Bản nháp trong `nginx-draft/` qua `nginx -t` và 36 kịch bản định tuyến (mặc định Django, `/_next/`, live/preview/POST, khớp chính xác `/problem/<mã>`, header IP/proto, tệp tĩnh, WebSocket, long-poll, `/web-healthz`, dự phòng khi Next trả 500 hoặc tắt) đều đạt. Kịch bản chạy bằng script tạm, **không đưa vào repo**.
+8. Bản nháp trong `deploy/nginx/` qua `nginx -t` và 36 kịch bản định tuyến (mặc định Django, `/_next/`, live/preview/POST, khớp chính xác `/problem/<mã>`, header IP/proto, tệp tĩnh, WebSocket, long-poll, `/web-healthz`, dự phòng khi Next trả 500 hoặc tắt) đều đạt. Kịch bản chạy bằng script tạm, **không đưa vào repo**.
 
 **Chưa kiểm chứng (cần làm trên server hoặc có Docker daemon):**
 - Cấu hình nginx production thật (không có trong repo): vì vậy bản nháp là *đề xuất*, mọi giá trị nền (timeout, kích thước upload, cache `/static/`, vị trí `icons/`, realip Cloudflare) phải đối chiếu với `nginx -T`.
@@ -53,7 +53,7 @@ Xem `proposal.md` cho lý do. Hiện trạng đọc từ repo (CI-CD.md, `cd.yml
 
 3. **Web chạy `network_mode: host`, nghe `127.0.0.1:3000`** (khớp các container hiện tại; nginx native gọi được). Đặt `HOSTNAME=127.0.0.1` tường minh vì Docker tự gán `HOSTNAME` là id container. Không cấp `env_file` production cho web (không cần mật khẩu DB), chỉ biến cần thiết. Thay thế: mạng bridge (chờ change đưa nginx vào compose).
 
-4. **Dockerfile `web/`** (đa tầng, Node 22): tầng deps `npm ci`, tầng build `npm run build`, tầng chạy copy `.next/standalone` và `.next/static`, chạy bằng user không phải root, `NODE_OPTIONS=--max-old-space-size=256`. Build context là `web/`. `mem_limit: 384m`. Healthcheck dùng `wget` (busybox) tới `/web-healthz`. Bản này chưa chạy `docker build` được trong phiên.
+4. **Dockerfile `web/`** (đa tầng, `node:22-bookworm-slim`): tầng deps `npm ci`, tầng build `npm run build`, tầng chạy copy `.next/standalone` và `.next/static`, chạy bằng user `node`, `NODE_OPTIONS=--max-old-space-size=256`. Build context là `web/`; `outputFileTracingRoot` được ghim vào `web/` nên `server.js` luôn ở gốc thư mục standalone (đã kiểm chứng: không ghim thì lồng vào `web/`). Chọn bản Debian slim thay vì Alpine để tránh khác biệt glibc/musl của binary SWC. `mem_limit: 384m`; healthcheck dùng chính Node (`fetch`) vì image slim không có `wget`/`curl`. Chưa chạy `docker build` được trong phiên (không có Docker daemon).
 
 5. **Nginx giữ native trong change này, cấu hình đặt ở thư mục user deploy ghi được.** Cả `deploy/nginx/` được CD chép tới `/var/www/thinkcodeoj/nginx/`; nginx chính có một dòng `include /var/www/thinkcodeoj/nginx/oj.conf;` (root làm một lần). Áp dụng bằng quyền sudo **hẹp** cho đúng `nginx -t` và `systemctl reload nginx`, cộng bước giữ bản cũ và hoàn tác nếu `nginx -t` lỗi. Thay thế: (a) nginx thành container ngay (loại bỏ sudo nhưng đổi cửa vào, cần cutover cổng 80, để change sau); (b) thủ công mỗi lần chuyển trang (chậm, dễ sai).
 
@@ -87,10 +87,10 @@ URL chuẩn lấy từ `dmoj/urls.py`. Cột "Matcher" là dạng nginx dùng kh
 
 Đường dẫn Next.js sở hữu riêng (không đụng Django): `/_next/`, `/web-healthz`. Không dùng `/api/` của Next.js vì `/api/` thuộc Django.
 
-## Thiết kế nginx (bản nháp trong `nginx-draft/`)
+## Thiết kế nginx (`deploy/nginx/`)
 
 ```
-nginx-draft/
+deploy/nginx/
   oj.conf               server block: realip, gzip, static, /_next/, /web-healthz,
                         /event/, /channels/, include routes, /admin/, /
   upstreams.conf        django_app, web_app, web_with_fallback, wsevent_get, wsevent_poll
@@ -125,6 +125,14 @@ Các quyết định trong cấu hình:
 - [Cloudflare cache HTML] → `private, no-cache` từ Next.js; kiểm tra `cf-cache-status` sau khi live.
 - [`/problem/<mã>/...` bị che] → chỉ dùng matcher neo `$` (kịch bản đã kiểm chứng).
 - [CD đổi từ `down` sang cập nhật từng service] → giữ nguyên `down` cho nhóm backend như hiện tại, web triển khai bước riêng; kiểm tra bằng deploy thử trước khi dùng cho release thật.
+
+## Kết quả thực hiện (2026-10-22)
+
+Đã làm và kiểm chứng trong phiên: cấu hình `web/` production, `/web-healthz`, `web/Dockerfile` (viết, chưa build), service `web` trong compose production và dev (`docker compose config` hợp lệ), `deploy/nginx` (nginx 1.24: `nginx -t` + 36 kịch bản), nginx dev dùng chung cấu hình (25 kịch bản), `scripts/gen_cloudflare_realip.sh` (hợp lệ/rác/rỗng/404), `scripts/deploy_nginx_config.sh` (5 tình huống), `cd.yml` mới (3 job thêm), middleware IP thật (tắt mặc định).
+
+Hai lỗi tìm thấy nhờ kiểm thử khi viết `deploy_nginx_config.sh`: (1) hai lần chạy trong cùng một giây dùng chung tên bản sao lưu nên `mv` lồng thư mục vào nhau, giờ hậu tố có PID; (2) `reload` bất đồng bộ nên lần kiểm tra đầu có thể rơi vào worker cũ và báo đạt dù cấu hình mới hỏng, giờ chờ 2 giây rồi bắt buộc 5 lần liên tiếp đều đạt.
+
+Chưa làm (cần server hoặc Docker): task 1.x, `docker build`, chạy workflow thật, thiết lập sudo/include trên server, áp dụng cấu hình production, bật `TRUSTED_PROXY_IPS`.
 
 ## Migration Plan
 
