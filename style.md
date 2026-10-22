@@ -1,249 +1,396 @@
-# Say Briefly — Style Reference
-> creative agency sketchbook on cream paper
+# ThinkAlgo OJ — Style Reference
+> playful friendly sticker-book: warm cream paper, thick cocoa outlines, hard offset shadows, and big bouncy hover effects
 
-**Theme:** light
+**Theme:** light mặc định + chế độ tối (xem "Dark mode")
 
-Source measurements are normalized; roles and recommendations are interpreted. Font summary lists are independent, not paired by position. HTML examples are reconstructions, not source components.
+> Trạng thái: **đã được chủ dự án chốt** màu xanh lá (Leaf), font, kích thước và chế độ tối; thay thế design system "Say Briefly" cũ. Palette gốc do chủ dự án cung cấp; **Leaf `#6CC24A` và Espresso `#331B00` là hai màu bổ sung** (xem bên dưới). Cú pháp CSS/Tailwind/shadcn chưa tra tài liệu chính thức; xác nhận trong spec của change bootstrap.
 
-SayBriefly speaks the visual language of a creative studio's moodboard: warm cream paper, a single deep forest green that does the heavy lifting for text and primary actions, and a vivid school-bus yellow that acts as both highlight marker and playful punctuation. Type is deliberately split-personality — Bricolage Grotesque at extrabold for display headlines with positive tracking that gives the words a sticker-book chunkiness, paired with Inter's clean humanist sans for everything functional. The overall feel is approachable, hand-made, and slightly rebellious: rounded 6px corners everywhere, minimal shadows, scattered pastel accent cards that feel like sticky notes rather than UI cards. Color is rationed — green for structure, yellow for emphasis, and tiny washes of teal/pink/orange as decorative one-offs.
+ThinkAlgo OJ nói bằng ngôn ngữ của một cuốn sổ sticker cho dân lập trình: nền giấy kem ấm, mọi thứ được viền bằng nét nâu cacao dày, bóng đổ là khối nâu **cứng, lệch, không mờ** như sticker dán nổi lên trang giấy. Amber là màu hành động; Orange, Sand và Cyan là các màu vui tươi để phản hồi và nhấn. Giao diện phải thân thiện và nghịch ngợm nhưng vẫn là công cụ làm việc: bảng đề, bài nộp, bảng điểm đọc rõ ở mật độ cao.
+
+Quy tắc xuyên suốt: **mọi thứ bấm được đều phản hồi hover thật rõ, thật to** (nâng lên, phóng to, đổi màu, bóng đổ dài ra), và **không bao giờ chỉ dựa vào màu** để truyền đạt trạng thái.
 
 ## Tokens — Colors
 
 | Name | Value | Token | Role |
 |------|-------|-------|------|
-| Forest Ink | `#1a3300` | `--color-forest-ink` | Primary text, filled CTA buttons, link text, nav borders, card borders — the structural backbone. This near-black green carries 90% of the interface weight |
-| Highlighter Yellow | `#ffe95c` | `--color-highlighter-yellow` | Text highlight wash (behind keywords in headlines), badge backgrounds, accent fills. Always reads as a marker stroke, never as a CTA |
-| Cream Paper | `#fcfaf5` | `--color-cream-paper` | Page canvas, card surfaces, nav background — the warm off-white everything sits on. Slightly yellow-shifted to feel like aged paper, not screen white |
-| Pencil Gray | `#b6b6b6` | `--color-pencil-gray` | Nav and divider borders — a single mid-gray for hairlines that should recede |
-| Whisper Gray | `#f1f1f1` | `--color-whisper-gray` | Muted helper text, secondary labels — disappears into the cream canvas |
-| Sticky Note Teal | `#a8e5e5` | `--color-sticky-note-teal` | Teal action color for filled buttons, selected navigation states, and focused conversion moments. |
-| Sticky Note Mint | `#d5f5c2` | `--color-sticky-note-mint` | Green action color for filled buttons, selected navigation states, and focused conversion moments |
-| Sticky Note Blush | `#f6d0ff` | `--color-sticky-note-blush` | Decorative button/card fill. Sprinkle use only |
-| Terracotta | `#cb5521` | `--color-terracotta` | Decorative card accent — warm counterpoint to the green/yellow palette |
+| Cream | `#FFF1D1` | `--color-cream` | Nền trang, nền card, nền input |
+| Sand | `#F9E6A8` | `--color-sand` | Nền khối phụ, hàng bảng xen kẽ/hover, badge nhẹ, nền nút phụ khi hover |
+| Amber | `#F2A900` | `--color-amber` | **Màu chủ đạo**: nền nút chính, mục đang chọn, nhấn nổi bật. Chữ trên nền này luôn là Cocoa |
+| Orange | `#FF9100` | `--color-orange` | Trạng thái hover/active của nút chính, highlight, cảnh báo nhẹ (TLE/MLE). Chữ trên nền này luôn là Cocoa |
+| Copper | `#CC6F00` | `--color-copper` | Viền nhấn khi hover, icon, tiêu đề phụ cỡ lớn (≥24px). **Không dùng làm chữ thường** |
+| Cocoa | `#4D2A00` | `--color-cocoa` | **Chữ chính**, viền dày, bóng đổ cứng, icon. Màu "mực" của toàn hệ thống |
+| Red | `#DF301C` | `--color-red` | Lỗi, nguy hiểm, WA. Nền nút nguy hiểm với chữ trắng |
+| Leaf | `#6CC24A` | `--color-leaf` | **Màu bổ sung**: thành công / AC / đúng. Xanh lá ấm (hue ~103°, bão hoà vừa) cho hợp với tông kem–nâu. Chữ trên nền này luôn là Cocoa; **không dùng làm màu chữ trên nền sáng** |
+| Cyan | `#00B7CD` | `--color-cyan` | Thông tin, vòng focus, trạng thái đang xử lý. Chữ trên nền này luôn là Cocoa; **không dùng làm màu chữ trên nền sáng** |
+| Espresso | `#331B00` | `--color-espresso` | **Màu bổ sung, chỉ cho chế độ tối**: nền trang tối (Cocoa dùng cho card/khối nổi) |
+| White | `#FFFFFF` | `--color-white` | Chỉ cho chữ trên nền Red/Cocoa và vùng cần nổi tuyệt đối (ví dụ khung soạn code) |
+
+### Kiểm tra tương phản (WCAG; chữ thường cần ≥4.5, chữ ≥18px đậm và thành phần UI cần ≥3)
+
+| Chữ trên nền | Tỉ lệ | Dùng |
+|---|---|---|
+| Cocoa / Cream | 11.4 | Mọi chữ nội dung |
+| Cocoa / Sand | 10.3 | Chữ trong khối phụ, hàng hover |
+| Cocoa / Amber | 6.4 | Chữ trên nút chính |
+| Cocoa / Orange | 5.7 | Chữ trên nút hover/active |
+| Cocoa / Leaf | 5.7 | Chữ trên badge AC/thành công |
+| Cocoa / Cyan | 5.3 | Chữ trên badge/nền thông tin |
+| White / Red | 4.6 | Chữ trên nút nguy hiểm |
+| Red / Cream | 4.1 | **Chỉ chữ lớn/đậm hoặc icon**, không dùng cho chữ thường |
+| Copper / Cream | 3.2 | **Chỉ chữ ≥24px, icon, viền** |
+| Cyan / Cream | 2.2 | **Cấm làm chữ** |
+| Leaf / Cream | 2.0 | **Cấm làm chữ**; khi làm nền phải có viền Cocoa |
+| Amber / Cream | 1.8 | **Cấm làm chữ**; khi làm nền phải có viền Cocoa |
+| Orange / Cream | 2.0 | **Cấm làm chữ**; khi làm nền phải có viền Cocoa |
+
+### Màu trạng thái chấm bài (verdict)
+
+AC dùng **Leaf** (xanh lá), đúng quy ước quen thuộc của online judge. Leaf, Cyan, Amber và Orange có độ sáng gần nhau (tương phản giữa chúng chỉ 1.0–1.3), nên màu **không đủ** để phân biệt, đặc biệt với người mù màu đỏ–lục (Leaf/Red/Orange). Mỗi verdict **luôn** có icon + nhãn chữ.
+
+| Verdict | Nền | Chữ | Icon |
+|---|---|---|---|
+| AC | Leaf | Cocoa | dấu tích |
+| WA | Red | White | dấu X |
+| TLE / MLE / OLE | Orange | Cocoa | đồng hồ / bộ nhớ |
+| RE / IR | Copper | White (chỉ ≥14px đậm) | cảnh báo |
+| CE | Sand + viền Cocoa | Cocoa | dấu ngoặc lỗi |
+| Đang chấm / Đang chờ | Amber | Cocoa | vòng quay (animation) |
+| Partial | Sand + viền Leaf 3px | Cocoa | nửa tròn |
 
 ## Tokens — Typography
 
-### Bricolage Grotesque — Display headlines only. Custom variable font with positive tracking (0.04-0.05em) that makes characters feel chunky and sticker-like. This is the signature voice — never use for body or UI. · `--font-bricolage-grotesque`
-- **Substitute:** Archivo Black, or Mulish 900 as fallback
-- **Weights:** 800
-- **Sizes:** 55px, 66px, 90px
-- **Line height:** 1.00-1.20
-- **Letter spacing:** 0.04em at 55px, 0.05em at 66-90px
-- **Role:** Display headlines only. Custom variable font with positive tracking (0.04-0.05em) that makes characters feel chunky and sticker-like. This is the signature voice — never use for body or UI.
+### Baloo 2 — Tiêu đề và số liệu nổi bật · `--font-heading`
+- **Nguồn:** `@fontsource/baloo-2` có subset `vietnamese` (kiểm tra qua npm registry, 2026-10-22)
+- **Substitute:** Fredoka, Nunito 800
+- **Weights:** 600, 700, 800
+- **Role:** Mọi heading (h1–h4), tên trang, số lớn (điểm, rank). Bo tròn, thân thiện, hỗ trợ subset `vietnamese`. Không dùng cho đoạn văn dài.
 
-### Inter — Everything functional: body copy, nav, buttons, cards, subheadings. Weight 400 for body, 500-600 for labels and subheads, 700 for section headings. Clean humanist sans that lets the Bricolage display type stay loud. · `--font-inter`
-- **Substitute:** system-ui, -apple-system, Segoe UI
-- **Weights:** 300, 400, 500, 600, 700
-- **Sizes:** 11px, 12px, 14px, 16px, 17px, 18px, 20px, 24px, 28px, 30px, 32px, 36px, 38px, 40px, 64px
-- **Line height:** 1.20-1.63
-- **Role:** Everything functional: body copy, nav, buttons, cards, subheadings. Weight 400 for body, 500-600 for labels and subheads, 700 for section headings. Clean humanist sans that lets the Bricolage display type stay loud.
+### Nunito — Nội dung và giao diện · `--font-body`
+- **Nguồn:** `@fontsource/nunito` có subset `vietnamese` (kiểm tra qua npm registry, 2026-10-22)
+- **Substitute:** system-ui, Segoe UI
+- **Weights:** 400, 600, 700, 800
+- **Role:** Đoạn văn, đề bài, nhãn, nút, bảng. Hỗ trợ `vietnamese`.
 
-### Roboto Mono — Micro-labels in nav, small caps-style tags, and technical metadata. Mono signals 'tool/utility' context within the otherwise rounded typographic system. · `--font-roboto-mono`
-- **Substitute:** JetBrains Mono, IBM Plex Mono
-- **Weights:** 400
-- **Sizes:** 12px, 15px, 16px
-- **Line height:** 1.00-1.38
-- **Role:** Micro-labels in nav, small caps-style tags, and technical metadata. Mono signals 'tool/utility' context within the otherwise rounded typographic system.
+### JetBrains Mono — Code và dữ liệu kỹ thuật · `--font-mono`
+- **Nguồn:** `@fontsource/jetbrains-mono` có subset `vietnamese` (kiểm tra qua npm registry, 2026-10-22), nên comment code tiếng Việt hiển thị đúng
+- **Substitute:** Roboto Mono, ui-monospace
+- **Weights:** 400, 600
+- **Role:** Code, input/output mẫu, mã đề, thời gian/bộ nhớ, diff.
 
 ### Type Scale
 
-| Role | Family | Weight | Size | Line Height | Letter Spacing | Token |
-|------|--------|--------|------|-------------|----------------|-------|
-| micro | — | — | 11px | 1.3 | — | `--text-micro` |
-| caption | — | — | 14px | 1.5 | — | `--text-caption` |
-| body-sm | — | — | 16px | 1.5 | — | `--text-body-sm` |
-| body | — | — | 18px | 1.5 | — | `--text-body` |
-| body-lg | — | — | 20px | 1.38 | — | `--text-body-lg` |
-| subheading | — | — | 28px | 1.25 | — | `--text-subheading` |
-| heading-sm | — | — | 40px | 1.1 | — | `--text-heading-sm` |
-| heading | — | — | 55px | 1 | 2.2px | `--text-heading` |
-| heading-lg | — | — | 66px | 1 | 3.3px | `--text-heading-lg` |
-| display | — | — | 90px | 1 | 4.5px | `--text-display` |
+| Role | Family | Weight | Size | Line Height | Token |
+|---|---|---|---|---|---|
+| micro | body | 700 | 12px | 1.3 | `--text-micro` |
+| caption | body | 600 | 14px | 1.5 | `--text-caption` |
+| body | body | 400 | 16px | 1.6 | `--text-body` |
+| body-lg | body | 400 | 18px | 1.6 | `--text-body-lg` |
+| subheading | heading | 700 | 24px | 1.3 | `--text-subheading` |
+| heading-sm | heading | 700 | 32px | 1.2 | `--text-heading-sm` |
+| heading | heading | 800 | 40px | 1.1 | `--text-heading` |
+| display | heading | 800 | 56px | 1.05 | `--text-display` |
+
+Bảng dữ liệu dày dùng `caption` (14px); nội dung đề bài dùng `body` hoặc `body-lg`. Không có letter-spacing đặc biệt.
 
 ## Tokens — Spacing & Shapes
 
-**Base unit:** 8px
-
-**Density:** comfortable
+**Base unit:** 8px · **Density:** comfortable cho trang nội dung, compact cho bảng.
 
 ### Spacing Scale
 
 | Name | Value | Token |
 |------|-------|-------|
+| 4 | 4px | `--spacing-4` |
 | 8 | 8px | `--spacing-8` |
+| 12 | 12px | `--spacing-12` |
 | 16 | 16px | `--spacing-16` |
 | 24 | 24px | `--spacing-24` |
 | 32 | 32px | `--spacing-32` |
-| 40 | 40px | `--spacing-40` |
 | 48 | 48px | `--spacing-48` |
-| 56 | 56px | `--spacing-56` |
 | 64 | 64px | `--spacing-64` |
-| 80 | 80px | `--spacing-80` |
-| 96 | 96px | `--spacing-96` |
-| 120 | 120px | `--spacing-120` |
 
-### Border Radius
+### Border Radius (lớn, tròn trịa)
 
 | Element | Value |
 |---------|-------|
-| nav | 16px |
-| tags | 9999px |
-| cards | 12px |
-| buttons | 6px |
+| navbar | 9999px (viên thuốc) |
+| buttons | 16px |
+| inputs | 14px |
+| cards | 24px |
+| dialogs | 28px |
+| tags / badges | 9999px |
+| avatar | 9999px |
 
-### Shadows
+### Viền
+
+- **Viền chuẩn:** 2px Cocoa cho nút, input, badge, hàng nổi.
+- **Viền đậm:** 3px Cocoa cho card, dialog, navbar.
+- Không dùng viền xám nhạt. Ranh giới luôn là Cocoa.
+
+### Shadows (bóng đổ cứng, lệch, không mờ)
 
 | Name | Value | Token |
 |------|-------|-------|
-| subtle | `rgba(0, 0, 0, 0.05) 0px 1px 2px 0px` | `--shadow-subtle` |
-| subtle-2 | `rgba(0, 0, 0, 0.1) 0px 1px 3px 0px, rgba(0, 0, 0, 0.1) 0p...` | `--shadow-subtle-2` |
-| xl | `rgba(255, 235, 90, 0.01) 0px 527px 211px 0px, rgba(255, 2...` | `--shadow-xl` |
+| hard-sm | `2px 2px 0 0 #4D2A00` | `--shadow-hard-sm` |
+| hard-md | `4px 4px 0 0 #4D2A00` | `--shadow-hard-md` |
+| hard-lg | `6px 6px 0 0 #4D2A00` | `--shadow-hard-lg` |
+| hard-xl | `8px 8px 0 0 #4D2A00` | `--shadow-hard-xl` |
+| focus | `0 0 0 3px #FFF1D1, 0 0 0 6px #00B7CD` | `--shadow-focus` |
+
+### Motion
+
+| Name | Value | Token |
+|------|-------|-------|
+| fast | 120ms | `--duration-fast` |
+| base | 200ms | `--duration-base` |
+| slow | 320ms | `--duration-slow` |
+| bounce | `cubic-bezier(0.34, 1.56, 0.64, 1)` | `--ease-bounce` |
+| smooth | `cubic-bezier(0.2, 0, 0, 1)` | `--ease-smooth` |
 
 ### Layout
 
-- **Page max-width:** 1200px
-- **Section gap:** 64px
+- **Page max-width:** 1280px (bảng dữ liệu có thể rộng hơn qua cuộn ngang trên mobile)
+- **Section gap:** 48px
 - **Card padding:** 24px
 - **Element gap:** 16px
 
+## Hover, Active, Focus — quy tắc chung
+
+Mọi phần tử bấm được (nút, link, card, hàng bảng, tab, mục menu, badge, avatar, mục phân trang) **bắt buộc** có hover rõ ràng. Mức hiệu ứng:
+
+- **Lớn (card, nút chính, nút phụ):** nâng lên 3–6px (`translateY`), bóng cứng tăng một bậc (md → lg), phóng to 1.03–1.05, đổi màu nền (Amber → Orange, Cream → Sand), có thể nghiêng ±1°.
+- **Trung (mục nav, tab, dropdown, pagination):** nền Sand → Amber dạng viên thuốc, nâng 2px, icon nảy nhẹ.
+- **Nhỏ (hàng bảng, link, badge):** hàng bảng đổ Sand + thanh nhấn Amber 6px bên trái + tên nhích phải 4px; link có nền Amber chạy từ trái sang phải sau chữ; badge phóng to 1.1 và xoay nhẹ.
+- **Active (đang nhấn):** hạ xuống, bóng cứng về 0, như nhấn nút vật lý.
+- **Focus-visible (bàn phím):** mọi hiệu ứng hover có tương đương, cộng `--shadow-focus` (vòng Cyan 3px ngoài viền Cream).
+
+Bắt buộc:
+- Bọc hiệu ứng hover vào `@media (hover: hover)` để thiết bị cảm ứng không bị kẹt trạng thái.
+- `@media (prefers-reduced-motion: reduce)`: bỏ nâng/xoay/phóng/nảy, chỉ giữ đổi màu nền và viền đậm hơn.
+- Chỉ animate `transform` và `opacity` khi có thể. Với bảng dài (hơn ~30 dòng) không animate `box-shadow` từng dòng; dùng nền + thanh nhấn.
+- Thời lượng `--duration-base`; card và nút dùng `--ease-bounce`, phần còn lại `--ease-smooth`.
+
 ## Components
 
-### Primary CTA Button
-**Role:** Conversion action
+### Primary Button
+**Role:** Hành động chính (Nộp bài, Đăng nhập, Tham gia contest)
 
-Filled Forest Ink (#1a3300) background, Cream Paper (#fcfaf5) text, 6px radius, padding 19px 40px (or 12px 20px for compact). Inter 500 at 16px. Subtle shadow: rgba(0,0,0,0.05) 0px 1px 2px. Contains inline arrow glyph (→) before label.
+Nền Amber, chữ Cocoa, viền 2px Cocoa, radius 16px, padding 12px 24px (compact 8px 16px), Nunito 800 16px, bóng `--shadow-hard-md`.
+- Hover: nền Orange, `translateY(-3px) scale(1.05)`, bóng `--shadow-hard-lg`, `--ease-bounce`.
+- Active: `translateY(2px)`, bóng 0.
+- Disabled: nền Sand, chữ Cocoa 50%, không bóng, không hover.
 
-### Outline Nav Button
-**Role:** Secondary nav action
+### Secondary Button
+**Role:** Hành động phụ
 
-Transparent fill, 1px Forest Ink border, 6px radius, padding 8px 16px. Inter 500 at 14px in Forest Ink. Used for 'Log In' in nav.
+Nền Cream, chữ Cocoa, viền 2px Cocoa, bóng `--shadow-hard-sm`.
+- Hover: nền Sand, `translateY(-3px)`, `rotate(-1deg)`, bóng `--shadow-hard-md`, viền không đổi (vẫn Cocoa để giữ tương phản).
 
-### Highlighted Word
-**Role:** Editorial emphasis within display text
+### Ghost Button
+**Role:** Hành động nhẹ trong thanh công cụ
 
-Individual words or short phrases in a Bricolage Grotesque headline wrapped in a Highlighter Yellow (#ffe95c) background. The highlight is a rectangular wash behind the text, not a border. Creates a marker-pen effect.
+Trong suốt, chữ Cocoa, không viền khi nghỉ.
+- Hover: nền Sand, viền 2px Cocoa xuất hiện, bóng `--shadow-hard-sm`, nâng 2px.
 
-### Logo Mark
-**Role:** Brand identity
+### Danger Button
+**Role:** Xoá, huỷ, thao tác không hoàn tác
 
-Two-part lockup: a 40x40 square in Highlighter Yellow containing a hand-drawn 'lo' monogram in Forest Ink (rounded, slightly imperfect strokes), followed by 'SayBriefly' wordmark in Inter 700 at 20px in Forest Ink.
+Nền Red, chữ White, viền 2px Cocoa, bóng `--shadow-hard-md`.
+- Hover: nâng 3px, phóng 1.05, bóng `--shadow-hard-lg`, rung nhẹ 1 lần (shake) khi reduced-motion tắt.
 
-### Sticky Note Card
-**Role:** Feature or decorative surface
+### Text Link
+**Role:** Liên kết trong nội dung
 
-12-16px radius, 24-28px padding, filled with one of the pastel accents (Mint, Blush, Teal, Terracotta) or Cream Paper. Forest Ink text. Optional 1px Forest Ink border. No shadow — the color fill does the separation work.
+Chữ Cocoa, gạch chân 3px Amber (offset 2px). Không dùng Cyan/Copper làm chữ link.
+- Hover: nền Amber lấp đầy sau chữ từ trái sang phải, gạch chân biến mất.
 
-### Top Navigation Bar
-**Role:** Primary site navigation
+### Input / Select / Textarea
+**Role:** Nhập liệu
 
-Cream Paper background, 16px radius container (pill-shaped), 1px Pencil Gray border. Logo left, centered nav links (Inter 500, 14px), auth buttons right. Padding 8-12px vertical. Contains the unusual multi-layer yellow shadow glow that bleeds beyond the nav edges.
+Nền Cream, chữ Cocoa, viền 2px Cocoa, radius 14px, padding 10px 14px, placeholder Cocoa 60%. Label Nunito 700 14px phía trên.
+- Hover: bóng `--shadow-hard-sm`, nền hơi Sand.
+- Focus: bóng `--shadow-focus` (vòng Cyan), viền Cocoa 3px.
+- Lỗi: viền Red 3px, icon + thông báo chữ Cocoa bên dưới (không chỉ màu).
 
-### Tagline Badge
-**Role:** Eyebrow label above headline
+### Card
+**Role:** Đề bài, contest, bài blog, khối thống kê
 
-Small pill or rounded rectangle with a tiny icon (lightbulb/star), Highlighter Yellow background, Forest Ink text at 12-14px Inter 500. Sits centered above the display headline as a 'category marker'.
+Nền Cream (hoặc Sand cho khối phụ), viền 3px Cocoa, radius 24px, padding 24px, bóng `--shadow-hard-md`.
+- Hover: `translateY(-6px)` và `rotate(-0.5deg)` (xen kẽ ±), bóng `--shadow-hard-xl`, viền chuyển Copper, icon trong card nảy nhẹ.
+- Active: hạ về bóng `--shadow-hard-sm`.
 
-### Backed-By Logo Strip
-**Role:** Social proof / credibility bar
+### Data Table
+**Role:** Danh sách đề, bài nộp, ranking, bảng điểm contest
 
-Small horizontal row of partner/funder logos in muted gray, preceded by 'Backed by:' label in Inter 400 12px. Logos sit at uniform 16-20px height. Appears below primary CTAs.
+Header nền Amber, chữ Cocoa Nunito 800 14px, viền dưới 3px Cocoa. Hàng nền Cream, xen kẽ Sand, đường kẻ 2px Cocoa 15% giữa hàng. Chữ 14px, padding 10px 16px. Số, mã đề, thời gian dùng `--font-mono`.
+- Hover hàng: nền Sand đậm hơn (Sand → Amber 35%), thanh Amber 6px bên trái, tên đề nhích phải 4px, con trỏ pointer. Không animate bóng từng hàng.
+- Sắp xếp: mũi tên + nhãn; cột đang sắp xếp nền Orange.
 
-### Display Hero Headline
-**Role:** Page-level title
+### Verdict Badge
+**Role:** Trạng thái bài nộp (xem bảng verdict)
 
-Bricolage Grotesque 800 at 66-90px, Forest Ink color, line-height 1.0, letter-spacing 0.04-0.05em. One or two words within the headline get the Highlighter Yellow background treatment.
+Pill (9999px), viền 2px Cocoa, Nunito 800 12–14px, icon trước nhãn. Nền/chữ theo bảng verdict.
+- Hover: phóng 1.1, xoay ±3°, tooltip giải thích (ví dụ "Quá thời gian trên test 7").
+- "Đang chấm": icon quay liên tục; reduced-motion: thay bằng ba chấm tĩnh.
 
-### Subhead Paragraph
-**Role:** Hero supporting copy
+### Navbar
+**Role:** Điều hướng chính
 
-Inter 400 at 18-20px, Forest Ink color, line-height 1.5, max-width ~600px, centered. The only place body text reaches 20px — everywhere else it sits at 16-18px.
+Viên thuốc nổi (radius 9999px) nền Cream, viền 3px Cocoa, bóng `--shadow-hard-md`, logo trái, mục giữa, nút đăng nhập/avatar phải. Trên mobile thành menu trượt (Sheet).
+- Hover mục: nền Sand dạng viên thuốc, nâng 2px, icon nảy.
+- Mục đang chọn: nền Amber, viền 2px Cocoa.
 
-### Reassurance Caption
-**Role:** Microcopy below CTA
+### Tabs
+**Role:** Chuyển nội dung (Đề bài / Bài nộp / Thống kê)
 
-Inter 400 at 12-14px, Whisper Gray (#f1f1f1) or Pencil Gray. Examples: 'no credit card required.' Sits 8-12px below the primary button.
+Tab dạng viên thuốc, viền 2px Cocoa; tab đang chọn nền Amber, tab khác nền Cream.
+- Hover tab: nền Sand, nâng 2px, `rotate(-1deg)`.
 
-### Decorative Sketch Element
-**Role:** Atmospheric illustration
+### Pagination
+**Role:** Phân trang
 
-Hand-drawn line illustrations in Forest Ink at ~30% opacity, placed as background atmosphere in hero/transition zones. Sharp 1-2px strokes, no fill, slight imperfection in line quality. Not icons — mood.
+Ô tròn/bo tròn 40px, viền 2px Cocoa; trang hiện tại nền Amber.
+- Hover: nền Sand, phóng 1.15, bóng `--shadow-hard-sm`.
 
-### Pastel Accent Button
-**Role:** Playful secondary action
+### Dialog / Sheet
+**Role:** Hộp thoại, menu mobile
 
-Filled with one of the sticky-note pastels (Blush, Teal, Mint), Forest Ink text at 14-16px Inter 500, 6px radius. Used for demo/secondary paths where a green CTA would feel too committed.
+Nền Cream, viền 3px Cocoa, radius 28px, bóng `--shadow-hard-xl`, lớp phủ Cocoa 50%. Xuất hiện với scale từ 0.95 + `--ease-bounce` (reduced-motion: mờ dần). Nút đóng có hover xoay 90°.
+
+### Toast
+**Role:** Thông báo ngắn
+
+Nền Cream (thông tin có thanh Cyan, lỗi có thanh Red, thành công có thanh Leaf + dấu tích), viền 3px Cocoa, bóng `--shadow-hard-md`. Luôn có icon và chữ.
+- Hover: dừng đếm ngược, nâng 2px.
+
+### Avatar / Logo
+**Role:** Nhận diện
+
+Avatar tròn, viền 3px Cocoa. Logo nền Amber với viền Cocoa dày, chữ Baloo 2.
+- Hover: lắc nhẹ hoặc xoay ±8° kèm phóng 1.1.
+
+### Code Editor Frame
+**Role:** Khung nộp bài
+
+Khung viền 3px Cocoa, radius 24px, thanh trên nền Sand (chọn ngôn ngữ, cỡ chữ, nút Nộp bài), vùng soạn nền White hoặc Cream (theme editor chốt riêng). Chọn thư viện editor ở change riêng.
+- Hover thanh công cụ: các nút theo quy tắc Ghost/Primary.
+
+### Empty / Error State
+**Role:** Trạng thái rỗng, 404, 500, chờ chấm
+
+Hình minh hoạ đơn giản (mascot hoặc khối hình học bo tròn) trên nền Sand, tiêu đề Baloo 2, một câu thân thiện và một Primary Button. Có thể thêm hiệu ứng nảy khi hover vào hình.
 
 ## Do's and Don'ts
 
 ### Do
-- Use Forest Ink (#1a3300) for all primary text, links, and CTA buttons — it is the single chromatic workhorse.
-- Set display headlines in Bricolage Grotesque 800 with positive letter-spacing (0.04-0.05em); let it breathe at line-height 1.0.
-- Apply Highlighter Yellow (#ffe95c) as a background wash behind individual words in headlines, not as a button fill or full surface.
-- Use 6px radius for all buttons and 12-16px for cards — never mix sharp 0px corners with the rounded system.
-- Set body copy at 18-20px Inter 400 with 1.5 line-height; this is a comfortable-density reading experience.
-- Separate layers with color fills and 1px borders, not shadows. Shadows are reserved for the nav glow and button lift only.
-- Keep the page 95% cream + forest green. Pastel accents (Mint, Blush, Teal) appear as individual card or button fills, never as large surfaces.
+- Dùng **Cocoa cho mọi chữ nội dung** và mọi viền. Chữ trên Red hoặc Cocoa dùng White.
+- Dùng Amber làm màu hành động chính; Orange chỉ cho hover/active và trạng thái nhấn.
+- Cho mọi phần tử bấm được hiệu ứng hover rõ theo mức ở phần "Hover, Active, Focus".
+- Dùng bóng đổ **cứng** lệch từ palette (`--shadow-hard-*`) để tạo chiều sâu.
+- Dùng góc bo lớn (16–28px) và viền Cocoa 2–3px nhất quán.
+- Kèm **icon và nhãn chữ** cho mọi trạng thái màu (verdict, lỗi, thành công).
+- Giữ bảng dữ liệu gọn (14px) và dễ quét; playful nằm ở viền, màu và phản hồi, không làm bảng loãng.
+- Hỗ trợ bàn phím: mọi hover có `:focus-visible` tương đương.
 
 ### Don't
-- Don't use Bricolage Grotesque for body text, nav, buttons, or anything below 40px — its 800 weight is too heavy for small sizes.
-- Don't introduce a second primary brand color. Forest Ink is the only chromatic authority; everything else is accent or neutral.
-- Don't apply heavy drop shadows. The system relies on color and borders for hierarchy; box-shadows above 2px blur break the flat aesthetic.
-- Don't use pure black (#000000) for text. Forest Ink is the text color — pure black should only appear as SVG fill/stroke in decorative elements.
-- Don't center-align body paragraphs wider than 640px. Headlines and subheads center, but reading copy should be left-aligned or constrained.
-- Don't use Highlighter Yellow as a CTA background. It reads as a marker, not an action — reserve it for text highlight washes.
-- Don't combine multiple pastel accent cards in the same row. Each pastel card should be separated by cream space to maintain the sticky-note rhythm.
+- Không dùng Amber, Orange, Leaf, Cyan, Copper làm màu chữ thường trên nền Cream/Sand (không đạt tương phản).
+- Không dùng bóng mờ (blur) hay đen/xám trung tính. Không dùng viền xám nhạt.
+- Không dùng màu đỏ để truyền đạt lỗi mà không có icon/nhãn; không dùng Leaf/Red phân biệt AC/WA mà không có icon.
+- Không để hiệu ứng hover làm dịch bố cục (layout shift): chỉ `transform`, không đổi `width`/`height`/`padding`.
+- Không bật hover trên thiết bị cảm ứng; không bỏ `prefers-reduced-motion`.
+- Không animate `box-shadow` từng dòng trong bảng dài.
+- Không thêm màu chủ đạo thứ hai ngoài Amber; không đưa màu mới vào palette mà không cập nhật file này.
+- Không dùng Baloo 2 cho đoạn văn dài hoặc bảng.
 
 ## Surfaces
 
 | Level | Name | Value | Purpose |
 |-------|------|-------|---------|
-| 1 | Cream Paper | `#fcfaf5` | Page canvas and nav background |
-| 2 | Sticky Note Mint | `#d5f5c2` | Soft feature card surface |
-| 3 | Highlighter Yellow | `#ffe95c` | Accent card or highlighted callout surface |
-| 4 | Sticky Note Blush | `#f6d0ff` | Decorative card surface |
-| 5 | Sticky Note Teal | `#a8e5e5` | Decorative card surface |
+| 1 | Cream | `#FFF1D1` | Nền trang, card, input |
+| 2 | Sand | `#F9E6A8` | Khối phụ, hàng xen kẽ, thanh công cụ |
+| 3 | Amber | `#F2A900` | Header bảng, mục đang chọn, nút chính |
+| 4 | Cocoa | `#4D2A00` | Thanh nhấn mạnh, footer; khối nổi trong chế độ tối |
+| 5 | Espresso | `#331B00` | Nền trang chế độ tối |
 
 ## Elevation
 
-- **Primary CTA Button:** `rgba(0, 0, 0, 0.05) 0px 1px 2px 0px`
-- **Secondary Button (hover/active):** `rgba(0, 0, 0, 0.1) 0px 1px 3px 0px, rgba(0, 0, 0, 0.1) 0px 1px 2px -1px`
+Chiều sâu bằng **bóng đổ cứng**, không bằng blur.
+
+- **Mặc định:** nút `--shadow-hard-md`, card `--shadow-hard-md`, input không bóng.
+- **Hover:** tăng một bậc (md → lg, card → xl) kèm nâng lên cùng khoảng.
+- **Active:** về `0` hoặc `--shadow-hard-sm` kèm hạ xuống.
+- **Dialog/Navbar nổi:** `--shadow-hard-xl` hoặc `--shadow-hard-md`.
 
 ## Imagery
 
-Imagery is minimal and hand-crafted rather than photographic. The system uses black-line sketch illustrations at reduced opacity as atmospheric background elements — abstract shapes, partial drawings, and gestural marks that feel like a designer's notebook scribbles bleeding off the page. There is no product photography, no stock imagery, no 3D renders. Decorative elements are monoline (1-2px stroke), unfilled, and deliberately imperfect. The logo mark itself is hand-drawn. Iconography in the interface is small and functional, appearing mostly in the tagline badge and form contexts. The overall image density is low — the page is text-dominant with illustration serving as texture rather than content.
+Hình ảnh vui, đơn giản, bo tròn: mascot và khối hình học (tròn, tam giác, sao) tô phẳng bằng palette, có viền Cocoa dày cho cảm giác sticker. Dùng cho trạng thái rỗng, lỗi 404/500, màn hình chờ chấm, ăn mừng khi AC (confetti bằng màu palette; reduced-motion: ảnh tĩnh). Không dùng ảnh stock hay 3D render. Icon dạng nét tròn đầu (lucide-react, nét 2px, màu Cocoa), nhãn chữ đi kèm khi mang nghĩa.
 
 ## Layout
 
-Page layout is max-width 1200px centered with generous side padding. The hero is a single centered column: logo top-left in the nav, tagline badge, massive display headline (2 lines), subhead paragraph (~600px), and CTA button stack — all vertically centered with comfortable spacing (64px between blocks). Sections stack vertically without alternating dark/light bands; the cream canvas is consistent throughout. Feature sections transition to 2-column and 3-column card grids further down. The navigation sits in a floating pill-shaped container centered at the top rather than a full-width bar. The overall rhythm is spacious — sections breathe with 64-80px gaps, cards never crowd. The single visual anchor is the centered hero block; everything else is subordinate to it.
+Trang rộng tối đa 1280px, căn giữa, lề hai bên ≥16px trên mobile. Trang nội dung (đề bài, blog) một cột đọc ~720–800px kèm cột phụ (thông tin, tab). Trang danh sách (đề, bài nộp, ranking) dùng Data Table rộng toàn khổ với bộ lọc dạng thẻ phía trên. Navbar viên thuốc nổi ở đầu trang; footer nền Cocoa chữ Cream. Khoảng cách giữa các khối 48px, trong khối 16–24px. Trên mobile: bảng cuộn ngang hoặc chuyển thành danh sách thẻ, navbar thành menu trượt, vùng chạm ≥44px.
+
+## Dark mode
+
+Chế độ tối được chốt, triển khai sau bản sáng nhưng token chuẩn bị sẵn từ đầu. Chọn bằng `prefers-color-scheme` mặc định, người dùng đổi tay được (lưu trong store giao diện).
+
+| Vai trò | Sáng | Tối |
+|---|---|---|
+| Nền trang | Cream `#FFF1D1` | Espresso `#331B00` |
+| Khối nổi (card, dialog, navbar, input) | Cream | Cocoa `#4D2A00` |
+| Khối phụ / hàng xen kẽ | Sand `#F9E6A8` | Espresso đậm hơn nền khoảng 8% hoặc Cocoa 60% |
+| Chữ | Cocoa | Cream |
+| Viền | Cocoa | Cream (2–3px) |
+| Bóng đổ cứng | Cocoa | `#1F1000` (tối hơn nền); viền Cream giữ vai trò tách khối |
+| Nút chính | Amber, chữ Cocoa | Giữ nguyên (Amber, chữ Cocoa) |
+| Hover nút chính | Orange | Orange (giữ nguyên) |
+| Hover hàng/mục nav | Sand | Cocoa sáng hơn: Amber 18% trên Cocoa |
+| Vòng focus | Cyan ngoài viền Cream | Cyan ngoài viền Espresso |
+
+Tương phản đã kiểm tra trong chế độ tối (chữ thường cần ≥4.5):
+
+| Chữ trên nền | Trên Espresso | Trên Cocoa | Dùng |
+|---|---|---|---|
+| Cream | 14.5 | 11.4 | Chữ nội dung |
+| Sand | 13.0 | 10.3 | Chữ phụ nhấn |
+| Amber | 8.1 | 6.4 | **Được phép** làm màu chữ/link trong chế độ tối |
+| Orange | 7.2 | 5.7 | Được phép |
+| Leaf | 7.3 | 5.7 | Được phép (chữ thành công/AC) |
+| Cyan | 6.7 | 5.3 | Được phép (link thông tin) |
+| Copper | 4.5 | 3.6 | Chỉ icon và chữ lớn |
+| Red | 3.5 | 2.8 | **Chỉ chữ lớn/đậm hoặc icon**; thông báo lỗi dùng chữ Cream kèm icon/thanh Red |
+
+Quy tắc riêng cho chế độ tối:
+- Link: Cream gạch chân 3px Amber (hoặc Amber nếu cần nổi), hover đổ nền Amber chữ Cocoa.
+- Nút nguy hiểm vẫn nền Red chữ White, viền Cream.
+- Badge verdict giữ nền và chữ như chế độ sáng (đã đạt tương phản), thêm viền Cream 2px.
+- Hiệu ứng hover giữ nguyên, nhưng "nâng" thể hiện bằng viền Cream và bóng `#1F1000` kèm đổi sáng nền, vì bóng tối trên nền tối khó thấy.
+- Mọi component phải được kiểm tra lại ở cả hai chế độ trước khi coi là hoàn thành.
 
 ## Agent Prompt Guide
 
 **Quick Color Reference**
-- text: #1a3300 (Forest Ink)
-- background: #fcfaf5 (Cream Paper)
-- border: #b6b6b6 (Pencil Gray)
-- accent: #ffe95c (Highlighter Yellow)
-- muted text: #f1f1f1 (Whisper Gray)
-- primary action: #1a3300 (filled action)
+- text: #4D2A00 (Cocoa)
+- background: #FFF1D1 (Cream)
+- surface phụ: #F9E6A8 (Sand)
+- primary action: #F2A900 (Amber), hover #FF9100 (Orange)
+- border: #4D2A00 (Cocoa)
+- danger: #DF301C (Red), chữ trắng
+- success/AC: #6CC24A (Leaf)
+- info/focus ring: #00B7CD (Cyan)
+- nền tối: #331B00 (Espresso), khối nổi trong chế độ tối #4D2A00 (Cocoa)
+- accent icon/large text: #CC6F00 (Copper)
 
-**3-5 Example Component Prompts**
+**Example Component Prompts**
 
-1. Build a hero section on #fcfaf5 canvas. Centered display headline: Bricolage Grotesque 800 at 72px, #1a3300, letter-spacing 0.05em, line-height 1.0. Highlight the word 'brief' with #ffe95c background. Subhead below: Inter 400 at 18px #1a3300, line-height 1.5, max-width 580px. Primary CTA: 6px radius, #1a3300 fill, #fcfaf5 text, padding 19px 40px, Inter 500 16px with '→' glyph.
+1. Primary button: nền #F2A900, chữ #4D2A00 Nunito 800 16px, viền 2px #4D2A00, radius 16px, padding 12px 24px, bóng `4px 4px 0 0 #4D2A00`. Hover (trong `@media (hover:hover)`): nền #FF9100, `transform: translateY(-3px) scale(1.05)`, bóng `6px 6px 0 0 #4D2A00`, transition 200ms `cubic-bezier(0.34,1.56,0.64,1)`. Active: `translateY(2px)`, bóng none. Reduced motion: chỉ đổi màu nền.
 
-2. Build a feature card. 12px radius, 24px padding, #d5f5c2 fill, no shadow. Heading: Inter 600 at 24px #1a3300. Body: Inter 400 at 16px #1a3300 line-height 1.5. Optional 1px #1a3300 border.
+2. Problem card: nền #FFF1D1, viền 3px #4D2A00, radius 24px, padding 24px, bóng `4px 4px 0 0 #4D2A00`. Mã đề JetBrains Mono 14px, tên đề Baloo 2 700 24px, badge độ khó pill. Hover: `translateY(-6px) rotate(-0.5deg)`, bóng `8px 8px 0 0 #4D2A00`, viền #CC6F00.
 
-3. Build the floating nav bar. 16px radius, 1px #b6b6b6 border, #fcfaf5 background, horizontal padding 12px. Logo left (40x40 #ffe95c square with 'lo' monogram + 'SayBriefly' Inter 700 20px #1a3300). Center: nav links Inter 500 14px #1a3300. Right: outline button (1px #1a3300 border, 6px radius, 8px 16px padding, Inter 500 14px #1a3300) + filled primary CTA (6px radius, #1a3300 fill, #fcfaf5 text, 8px 16px padding).
+3. Verdict badge AC: pill, nền #6CC24A, chữ #4D2A00 Nunito 800 14px, viền 2px #4D2A00, icon dấu tích trước chữ "AC". Hover: scale 1.1, rotate 3°, tooltip.
 
-4. Build a tagline badge. Inline-flex, 4px vertical padding, 8px horizontal padding, #ffe95c background, 6px radius. Inter 500 at 12px #1a3300, with a small icon glyph (lightbulb or star) preceding the text.
+4. Data table row: nền #FFF1D1 (xen kẽ #F9E6A8), chữ 14px Nunito, mã đề mono. Hover: nền #F9E6A8 đậm hơn, thanh #F2A900 rộng 6px bên trái, tên nhích phải 4px, không animate shadow.
 
-5. Build a backed-by strip. Horizontal flex row, 16px gap between items, preceded by 'Backed by:' label in Inter 400 12px #b6b6b6. Partner logos at 16-20px height, displayed in single-color #b6b6b6 or #1a3300.
-
-## Similar Brands
-
-- **Notion** — Same warm minimal canvas with a single near-black color carrying all structural weight, and intentional use of black-line illustration for atmospheric texture.
-- **Linear** — Restrained chromatic palette, generous whitespace, and the confidence to let one bold display typeface carry the brand voice while keeping UI type quiet.
-- **Framer** — Playful creative-tool aesthetic with rounded corners, yellow as an editorial highlight accent, and sketch-style illustration elements.
-- **Pitch** — Same studio-moodboard visual language: cream/warm canvas, bold display type, pastel accent cards scattered like sticky notes, minimal shadow hierarchy.
+5. Navbar: viên thuốc nổi, nền #FFF1D1, viền 3px #4D2A00, bóng `4px 4px 0 0 #4D2A00`. Mục đang chọn nền #F2A900 viền 2px #4D2A00; hover mục nền #F9E6A8, nâng 2px.
 
 ## Quick Start
 
@@ -252,98 +399,95 @@ Page layout is max-width 1200px centered with generous side padding. The hero is
 ```css
 :root {
   /* Colors */
-  --color-forest-ink: #1a3300;
-  --color-highlighter-yellow: #ffe95c;
-  --color-cream-paper: #fcfaf5;
-  --color-pencil-gray: #b6b6b6;
-  --color-whisper-gray: #f1f1f1;
-  --color-sticky-note-teal: #a8e5e5;
-  --color-sticky-note-mint: #d5f5c2;
-  --color-sticky-note-blush: #f6d0ff;
-  --color-terracotta: #cb5521;
+  --color-cream: #FFF1D1;
+  --color-sand: #F9E6A8;
+  --color-amber: #F2A900;
+  --color-orange: #FF9100;
+  --color-copper: #CC6F00;
+  --color-cocoa: #4D2A00;
+  --color-red: #DF301C;
+  --color-leaf: #6CC24A;
+  --color-cyan: #00B7CD;
+  --color-espresso: #331B00;
+  --color-white: #FFFFFF;
 
-  /* Typography — Font Families */
-  --font-bricolage-grotesque: 'Bricolage Grotesque', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-inter: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-roboto-mono: 'Roboto Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  /* Typography — Families */
+  --font-heading: 'Baloo 2', ui-rounded, system-ui, sans-serif;
+  --font-body: 'Nunito', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
   /* Typography — Scale */
-  --text-micro: 11px;
-  --leading-micro: 1.3;
+  --text-micro: 12px;
   --text-caption: 14px;
-  --leading-caption: 1.5;
-  --text-body-sm: 16px;
-  --leading-body-sm: 1.5;
-  --text-body: 18px;
-  --leading-body: 1.5;
-  --text-body-lg: 20px;
-  --leading-body-lg: 1.38;
-  --text-subheading: 28px;
-  --leading-subheading: 1.25;
-  --text-heading-sm: 40px;
-  --leading-heading-sm: 1.1;
-  --text-heading: 55px;
-  --leading-heading: 1;
-  --tracking-heading: 2.2px;
-  --text-heading-lg: 66px;
-  --leading-heading-lg: 1;
-  --tracking-heading-lg: 3.3px;
-  --text-display: 90px;
-  --leading-display: 1;
-  --tracking-display: 4.5px;
-
-  /* Typography — Weights */
-  --font-weight-light: 300;
-  --font-weight-regular: 400;
-  --font-weight-medium: 500;
-  --font-weight-semibold: 600;
-  --font-weight-bold: 700;
-  --font-weight-extrabold: 800;
+  --text-body: 16px;
+  --text-body-lg: 18px;
+  --text-subheading: 24px;
+  --text-heading-sm: 32px;
+  --text-heading: 40px;
+  --text-display: 56px;
 
   /* Spacing */
-  --spacing-unit: 8px;
+  --spacing-4: 4px;
   --spacing-8: 8px;
+  --spacing-12: 12px;
   --spacing-16: 16px;
   --spacing-24: 24px;
   --spacing-32: 32px;
-  --spacing-40: 40px;
   --spacing-48: 48px;
-  --spacing-56: 56px;
   --spacing-64: 64px;
-  --spacing-80: 80px;
-  --spacing-96: 96px;
-  --spacing-120: 120px;
 
   /* Layout */
-  --page-max-width: 1200px;
-  --section-gap: 64px;
+  --page-max-width: 1280px;
+  --section-gap: 48px;
   --card-padding: 24px;
   --element-gap: 16px;
 
   /* Border Radius */
-  --radius-sm: 3px;
-  --radius-md: 6px;
-  --radius-xl: 12px;
-  --radius-2xl: 16px;
+  --radius-button: 16px;
+  --radius-input: 14px;
+  --radius-card: 24px;
+  --radius-dialog: 28px;
   --radius-full: 9999px;
 
-  /* Named Radii */
-  --radius-nav: 16px;
-  --radius-tags: 9999px;
-  --radius-cards: 12px;
-  --radius-buttons: 6px;
+  /* Borders */
+  --border-width: 2px;
+  --border-width-thick: 3px;
 
-  /* Shadows */
-  --shadow-subtle: rgba(0, 0, 0, 0.05) 0px 1px 2px 0px;
-  --shadow-subtle-2: rgba(0, 0, 0, 0.1) 0px 1px 3px 0px, rgba(0, 0, 0, 0.1) 0px 1px 2px -1px;
-  --shadow-xl: rgba(255, 235, 90, 0.01) 0px 527px 211px 0px, rgba(255, 235, 90, 0.05) 0px 297px 178px 0px, rgba(255, 235, 90, 0.09) 0px 132px 132px 0px, rgba(255, 235, 90, 0.1) 0px 33px 72px 0px;
+  /* Shadows (hard offset); --shadow-color đổi ở chế độ tối */
+  --shadow-color: #4D2A00;
+  --shadow-hard-sm: 2px 2px 0 0 var(--shadow-color, #4D2A00);
+  --shadow-hard-md: 4px 4px 0 0 var(--shadow-color, #4D2A00);
+  --shadow-hard-lg: 6px 6px 0 0 var(--shadow-color, #4D2A00);
+  --shadow-hard-xl: 8px 8px 0 0 var(--shadow-color, #4D2A00);
+  --shadow-focus: 0 0 0 3px #FFF1D1, 0 0 0 6px #00B7CD;
 
-  /* Surfaces */
-  --surface-cream-paper: #fcfaf5;
-  --surface-sticky-note-mint: #d5f5c2;
-  --surface-highlighter-yellow: #ffe95c;
-  --surface-sticky-note-blush: #f6d0ff;
-  --surface-sticky-note-teal: #a8e5e5;
+  /* Motion */
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 320ms;
+  --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-smooth: cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* Chế độ tối: ghi đè token ngữ nghĩa (tên biến cần đối chiếu với shadcn) */
+:root[data-theme="dark"] {
+  --background: var(--color-espresso);
+  --surface: var(--color-cocoa);
+  --foreground: var(--color-cream);
+  --border-color: var(--color-cream);
+  --shadow-color: #1F1000;
+}
+
+/* Mẫu hover: chỉ trên thiết bị có hover, và tôn trọng giảm chuyển động */
+.btn-primary { transition: transform var(--duration-base) var(--ease-bounce),
+                           box-shadow var(--duration-base) var(--ease-bounce),
+                           background-color var(--duration-base) var(--ease-smooth); }
+@media (hover: hover) {
+  .btn-primary:hover { background-color: var(--color-orange); box-shadow: var(--shadow-hard-lg); }
+}
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .btn-primary:hover { transform: translateY(-3px) scale(1.05); }
+  .btn-primary:active { transform: translateY(2px); box-shadow: none; }
 }
 ```
 
@@ -352,69 +496,39 @@ Page layout is max-width 1200px centered with generous side padding. The hero is
 ```css
 @theme {
   /* Colors */
-  --color-forest-ink: #1a3300;
-  --color-highlighter-yellow: #ffe95c;
-  --color-cream-paper: #fcfaf5;
-  --color-pencil-gray: #b6b6b6;
-  --color-whisper-gray: #f1f1f1;
-  --color-sticky-note-teal: #a8e5e5;
-  --color-sticky-note-mint: #d5f5c2;
-  --color-sticky-note-blush: #f6d0ff;
-  --color-terracotta: #cb5521;
+  --color-cream: #FFF1D1;
+  --color-sand: #F9E6A8;
+  --color-amber: #F2A900;
+  --color-orange: #FF9100;
+  --color-copper: #CC6F00;
+  --color-cocoa: #4D2A00;
+  --color-red: #DF301C;
+  --color-leaf: #6CC24A;
+  --color-cyan: #00B7CD;
+  --color-espresso: #331B00;
 
   /* Typography */
-  --font-bricolage-grotesque: 'Bricolage Grotesque', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-inter: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-roboto-mono: 'Roboto Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-
-  /* Typography — Scale */
-  --text-micro: 11px;
-  --leading-micro: 1.3;
-  --text-caption: 14px;
-  --leading-caption: 1.5;
-  --text-body-sm: 16px;
-  --leading-body-sm: 1.5;
-  --text-body: 18px;
-  --leading-body: 1.5;
-  --text-body-lg: 20px;
-  --leading-body-lg: 1.38;
-  --text-subheading: 28px;
-  --leading-subheading: 1.25;
-  --text-heading-sm: 40px;
-  --leading-heading-sm: 1.1;
-  --text-heading: 55px;
-  --leading-heading: 1;
-  --tracking-heading: 2.2px;
-  --text-heading-lg: 66px;
-  --leading-heading-lg: 1;
-  --tracking-heading-lg: 3.3px;
-  --text-display: 90px;
-  --leading-display: 1;
-  --tracking-display: 4.5px;
-
-  /* Spacing */
-  --spacing-8: 8px;
-  --spacing-16: 16px;
-  --spacing-24: 24px;
-  --spacing-32: 32px;
-  --spacing-40: 40px;
-  --spacing-48: 48px;
-  --spacing-56: 56px;
-  --spacing-64: 64px;
-  --spacing-80: 80px;
-  --spacing-96: 96px;
-  --spacing-120: 120px;
+  --font-heading: 'Baloo 2', ui-rounded, system-ui, sans-serif;
+  --font-body: 'Nunito', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
   /* Border Radius */
-  --radius-sm: 3px;
-  --radius-md: 6px;
-  --radius-xl: 12px;
-  --radius-2xl: 16px;
-  --radius-full: 9999px;
+  --radius-button: 16px;
+  --radius-input: 14px;
+  --radius-card: 24px;
+  --radius-dialog: 28px;
 
   /* Shadows */
-  --shadow-subtle: rgba(0, 0, 0, 0.05) 0px 1px 2px 0px;
-  --shadow-subtle-2: rgba(0, 0, 0, 0.1) 0px 1px 3px 0px, rgba(0, 0, 0, 0.1) 0px 1px 2px -1px;
-  --shadow-xl: rgba(255, 235, 90, 0.01) 0px 527px 211px 0px, rgba(255, 235, 90, 0.05) 0px 297px 178px 0px, rgba(255, 235, 90, 0.09) 0px 132px 132px 0px, rgba(255, 235, 90, 0.1) 0px 33px 72px 0px;
+  --shadow-hard-sm: 2px 2px 0 0 var(--shadow-color, #4D2A00);
+  --shadow-hard-md: 4px 4px 0 0 var(--shadow-color, #4D2A00);
+  --shadow-hard-lg: 6px 6px 0 0 var(--shadow-color, #4D2A00);
+  --shadow-hard-xl: 8px 8px 0 0 var(--shadow-color, #4D2A00);
+  --shadow-focus: 0 0 0 3px #FFF1D1, 0 0 0 6px #00B7CD;
+
+  /* Motion */
+  --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-smooth: cubic-bezier(0.2, 0, 0, 1);
 }
 ```
+
+Ánh xạ sang biến của shadcn/ui (tên biến chính xác phải đối chiếu theo phiên bản shadcn dùng): `background=Cream`, `foreground=Cocoa`, `primary=Amber` (chữ `primary-foreground=Cocoa`), `secondary=Sand`, `accent=Sand`, `destructive=Red` (chữ White), `border=Cocoa`, `input=Cocoa`, `ring=Cyan`. Chế độ tối: `background=Espresso`, `card/popover=Cocoa`, `foreground=Cream`, `border=Cream`, `primary` giữ Amber (chữ Cocoa).
