@@ -14,3 +14,10 @@ uwsgi.ini
 .sass-cache
 sass_processed
 static
+
+# Frontend, hạ tầng và tài liệu không thuộc image backend (web/ có image riêng).
+web
+openspec
+docs
+deploy
+nginx
