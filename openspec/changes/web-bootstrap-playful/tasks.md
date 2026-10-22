@@ -10,7 +10,7 @@
 
 - [x] 2.1 Hiện thực token từ `style.md` (màu, font, bo góc, bóng đổ cứng, motion) trong `globals.css` với `@theme` và biến ngữ nghĩa; xác nhận bằng ảnh chụp trang gallery thấy đúng màu hex
 - [x] 2.2 Nạp font Vietnamese (latin, latin-ext, vietnamese) và xác nhận chữ có dấu hiển thị đúng bằng ảnh chụp
-- [x] 2.3 Thêm script chặn chọn chế độ và store Zustand tạo theo provider (theme, menu mobile); xác nhận không có cảnh báo hydration ở console và không nhấp nháy khi tải ở chế độ tối
+- [x] 2.3 Thêm script chặn chọn chế độ và store Zustand tạo theo provider (theme, menu mobile); xác nhận không có cảnh báo hydration ở console, mặc định sáng kể cả khi hệ điều hành tối, và không nhấp nháy khi tải ở chế độ tối đã chọn
 - [x] 2.4 Viết script kiểm tra tương phản WCAG cho mọi cặp chữ/nền ở hai chế độ (đặt ngoài repo, chạy một lần); xác nhận mọi cặp dùng cho chữ thường ≥4.5
 
 ## 3. Component nền tảng

@@ -18,15 +18,19 @@ Frontend SHALL cung cấp màu, font, bo góc, viền, bóng đổ cứng và mo
 - **THEN** tiêu đề dùng Baloo 2, nội dung dùng Nunito, code dùng JetBrains Mono, và mọi ký tự có dấu hiển thị bằng font đó, không rơi về font hệ thống
 
 ### Requirement: Chế độ sáng và tối
-Frontend SHALL hỗ trợ chế độ sáng và tối, chọn mặc định theo cài đặt hệ điều hành và cho người dùng đổi tay.
+Frontend SHALL hỗ trợ chế độ sáng và tối, SHALL mặc định là chế độ sáng bất kể cài đặt hệ điều hành, và SHALL cho người dùng đổi tay.
 
-#### Scenario: Theo hệ điều hành
-- **WHEN** người dùng chưa chọn chế độ và hệ điều hành đặt chế độ tối
-- **THEN** trang hiển thị nền Espresso `#331B00`, khối nổi Cocoa `#4D2A00` và chữ Cream `#FFF1D1`
+#### Scenario: Mặc định sáng
+- **WHEN** người dùng chưa chọn chế độ, kể cả khi hệ điều hành đặt chế độ tối
+- **THEN** trang hiển thị nền Cream `#FFF1D1` và chữ Cocoa `#4D2A00`
 
-#### Scenario: Người dùng đổi tay
-- **WHEN** người dùng chọn chế độ khác với hệ điều hành
-- **THEN** lựa chọn được áp dụng ngay và được giữ lại ở lần mở trang sau, không có khoảnh khắc hiển thị sai chế độ khi tải trang
+#### Scenario: Người dùng chọn tối
+- **WHEN** người dùng chọn chế độ tối
+- **THEN** trang hiển thị nền Espresso `#331B00`, khối nổi Cocoa `#4D2A00` và chữ Cream `#FFF1D1`; lựa chọn được giữ lại ở lần mở trang sau, không có khoảnh khắc hiển thị sai chế độ khi tải trang
+
+#### Scenario: Quay lại sáng
+- **WHEN** người dùng đang ở chế độ tối chọn lại chế độ sáng
+- **THEN** trang chuyển sang sáng ngay và lựa chọn đã lưu bị xoá (về mặc định)
 
 ### Requirement: Tương phản chữ
 Mọi chữ nội dung SHALL đạt tỉ lệ tương phản WCAG AA (4.5:1 cho chữ thường, 3:1 cho chữ lớn đậm và thành phần UI) ở cả hai chế độ.

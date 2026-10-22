@@ -35,7 +35,7 @@ Kiểm bằng Chromium (Playwright) trên dev server, ảnh chụp ở sáng/t�
 - `prefers-reduced-motion`: không còn dịch chuyển/xoay/phóng; vẫn đổi màu nền và bóng. Spinner "đang chấm" đứng yên.
 - Thiết bị cảm ứng: `(hover: hover)` là false nên hiệu ứng hover không áp dụng.
 - Focus bàn phím: viền ngoài 3px màu `edge` + dải Cyan 3px.
-- Chế độ tối theo hệ điều hành: `data-theme="dark"` đã được đặt trước khi vẽ (không nhấp nháy); đổi tay được lưu qua `localStorage`.
+- Chế độ màu: **mặc định sáng**, kể cả khi hệ điều hành đặt tối; chọn tối thì `data-theme="dark"` được đặt trước khi vẽ (không nhấp nháy) và lưu qua `localStorage`; chọn lại sáng thì xoá khoá lưu. Đã kiểm bằng Chromium với `colorScheme: dark`.
 - Tắt JavaScript: tiêu đề và liên kết điều hướng vẫn có trong HTML.
 - Font có subset `vietnamese` được tải thật (Nunito, Baloo 2, JetBrains Mono).
 - Tương phản: mọi cặp chữ/nền được dùng đạt ≥4.5:1 (chữ) hoặc ≥3:1 (thành phần UI) ở cả hai chế độ, sau khi sửa ba điểm lệch so với `style.md` ban đầu (xem bên dưới).

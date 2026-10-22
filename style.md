@@ -331,7 +331,7 @@ Trang rộng tối đa 1280px, căn giữa, lề hai bên ≥16px trên mobile. 
 
 ## Dark mode
 
-Chế độ tối được chốt, triển khai sau bản sáng nhưng token chuẩn bị sẵn từ đầu. Chọn bằng `prefers-color-scheme` mặc định, người dùng đổi tay được (lưu trong store giao diện).
+Chế độ tối được chốt. **Mặc định luôn là chế độ sáng**, không theo `prefers-color-scheme`; chỉ vào chế độ tối khi người dùng chủ động chọn (lưu trong store giao diện và `localStorage`).
 
 | Vai trò | Sáng | Tối |
 |---|---|---|

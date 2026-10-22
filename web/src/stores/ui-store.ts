@@ -1,12 +1,13 @@
 import { createStore } from "zustand/vanilla";
 
-export type ThemePreference = "system" | "light" | "dark";
-export type ResolvedTheme = "light" | "dark";
+/** Mặc định là "light"; chỉ "dark" khi người dùng chủ động chọn. */
+export type ThemePreference = "light" | "dark";
+export type ResolvedTheme = ThemePreference;
 
 export const THEME_STORAGE_KEY = "thinkalgo-theme";
 
 export interface UiState {
-  /** Lựa chọn của người dùng; "system" nghĩa là theo hệ điều hành. */
+  /** Lựa chọn của người dùng, mặc định sáng (không theo hệ điều hành). */
   theme: ThemePreference;
   resolvedTheme: ResolvedTheme;
   /** false cho tới khi client đọc xong lựa chọn đã lưu (tránh lệch hydration). */
@@ -14,31 +15,22 @@ export interface UiState {
   mobileMenuOpen: boolean;
   hydrate: () => void;
   setTheme: (theme: ThemePreference) => void;
-  syncSystemTheme: () => void;
   setMobileMenuOpen: (open: boolean) => void;
-}
-
-function systemTheme(): ResolvedTheme {
-  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-}
-
-function resolve(theme: ThemePreference): ResolvedTheme {
-  return theme === "system" ? systemTheme() : theme;
 }
 
 function readStoredTheme(): ThemePreference {
   try {
     const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
-    if (stored === "light" || stored === "dark") return stored;
+    if (stored === "dark") return "dark";
   } catch {
-    // localStorage có thể bị chặn (chế độ riêng tư); dùng theo hệ điều hành.
+    // localStorage có thể bị chặn (chế độ riêng tư); dùng chế độ sáng mặc định.
   }
-  return "system";
+  return "light";
 }
 
 function writeStoredTheme(theme: ThemePreference) {
   try {
-    if (theme === "system") window.localStorage.removeItem(THEME_STORAGE_KEY);
+    if (theme === "light") window.localStorage.removeItem(THEME_STORAGE_KEY);
     else window.localStorage.setItem(THEME_STORAGE_KEY, theme);
   } catch {
     // Bỏ qua: lựa chọn vẫn áp dụng cho phiên hiện tại.
@@ -55,28 +47,20 @@ function applyResolvedTheme(resolved: ResolvedTheme) {
  * Chỉ chứa state giao diện, không chứa dữ liệu nghiệp vụ.
  */
 export function createUiStore() {
-  return createStore<UiState>()((set, get) => ({
-    theme: "system",
+  return createStore<UiState>()((set) => ({
+    theme: "light",
     resolvedTheme: "light",
     hydrated: false,
     mobileMenuOpen: false,
     hydrate: () => {
       const theme = readStoredTheme();
-      const resolvedTheme = resolve(theme);
-      applyResolvedTheme(resolvedTheme);
-      set({ theme, resolvedTheme, hydrated: true });
+      applyResolvedTheme(theme);
+      set({ theme, resolvedTheme: theme, hydrated: true });
     },
     setTheme: (theme) => {
-      const resolvedTheme = resolve(theme);
       writeStoredTheme(theme);
-      applyResolvedTheme(resolvedTheme);
-      set({ theme, resolvedTheme });
-    },
-    syncSystemTheme: () => {
-      if (get().theme !== "system") return;
-      const resolvedTheme = systemTheme();
-      applyResolvedTheme(resolvedTheme);
-      set({ resolvedTheme });
+      applyResolvedTheme(theme);
+      set({ theme, resolvedTheme: theme });
     },
     setMobileMenuOpen: (mobileMenuOpen) => set({ mobileMenuOpen }),
   }));

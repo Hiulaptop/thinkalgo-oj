@@ -11,10 +11,6 @@ export function UiStoreProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     store.getState().hydrate();
-    const media = window.matchMedia("(prefers-color-scheme: dark)");
-    const onChange = () => store.getState().syncSystemTheme();
-    media.addEventListener("change", onChange);
-    return () => media.removeEventListener("change", onChange);
   }, [store]);
 
   return <UiStoreContext.Provider value={store}>{children}</UiStoreContext.Provider>;
