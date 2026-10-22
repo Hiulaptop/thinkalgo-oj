@@ -45,14 +45,14 @@ Quy tắc xuyên suốt: **mọi thứ bấm được đều phản hồi hover 
 
 ### Màu trạng thái chấm bài (verdict)
 
-AC dùng **Leaf** (xanh lá), đúng quy ước quen thuộc của online judge. Leaf, Cyan, Amber và Orange có độ sáng gần nhau (tương phản giữa chúng chỉ 1.0–1.3), nên màu **không đủ** để phân biệt, đặc biệt với người mù màu đỏ–lục (Leaf/Red/Orange). Mỗi verdict **luôn** có icon + nhãn chữ.
+AC dùng **Leaf** (xanh lá), đúng quy ước quen thuộc của online judge. Leaf, Cyan, Amber và Orange có độ sáng gần nhau (tương phản giữa chúng chỉ 1.0–1.3), nên màu **không đủ** để phân biệt, đặc biệt với người mù màu đỏ–lục (Leaf/Red/Orange). Mỗi verdict **luôn** có icon + nhãn chữ. RE/IR dùng nền Cocoa vì Copper với chữ trắng chỉ đạt 3.6:1 (không đủ AA cho chữ nhỏ).
 
 | Verdict | Nền | Chữ | Icon |
 |---|---|---|---|
 | AC | Leaf | Cocoa | dấu tích |
 | WA | Red | White | dấu X |
 | TLE / MLE / OLE | Orange | Cocoa | đồng hồ / bộ nhớ |
-| RE / IR | Copper | White (chỉ ≥14px đậm) | cảnh báo |
+| RE / IR | Cocoa | Cream (icon Amber) | cảnh báo |
 | CE | Sand + viền Cocoa | Cocoa | dấu ngoặc lỗi |
 | Đang chấm / Đang chờ | Amber | Cocoa | vòng quay (animation) |
 | Partial | Sand + viền Leaf 3px | Cocoa | nửa tròn |
@@ -135,7 +135,7 @@ Bảng dữ liệu dày dùng `caption` (14px); nội dung đề bài dùng `bod
 | hard-md | `4px 4px 0 0 #4D2A00` | `--shadow-hard-md` |
 | hard-lg | `6px 6px 0 0 #4D2A00` | `--shadow-hard-lg` |
 | hard-xl | `8px 8px 0 0 #4D2A00` | `--shadow-hard-xl` |
-| focus | `0 0 0 3px #FFF1D1, 0 0 0 6px #00B7CD` | `--shadow-focus` |
+| focus | dải Cyan `0 0 0 3px #00B7CD` kèm viền ngoài 3px màu `edge` (offset 3px) | `--shadow-focus` |
 
 ### Motion
 
@@ -162,7 +162,7 @@ Mọi phần tử bấm được (nút, link, card, hàng bảng, tab, mục men
 - **Trung (mục nav, tab, dropdown, pagination):** nền Sand → Amber dạng viên thuốc, nâng 2px, icon nảy nhẹ.
 - **Nhỏ (hàng bảng, link, badge):** hàng bảng đổ Sand + thanh nhấn Amber 6px bên trái + tên nhích phải 4px; link có nền Amber chạy từ trái sang phải sau chữ; badge phóng to 1.1 và xoay nhẹ.
 - **Active (đang nhấn):** hạ xuống, bóng cứng về 0, như nhấn nút vật lý.
-- **Focus-visible (bàn phím):** mọi hiệu ứng hover có tương đương, cộng `--shadow-focus` (vòng Cyan 3px ngoài viền Cream).
+- **Focus-visible (bàn phím):** mọi hiệu ứng hover có tương đương, cộng vòng focus: dải Cyan 3px bao quanh bởi viền ngoài 3px màu `edge` (Cyan một mình chỉ đạt 2.2:1 trên Cream nên không đủ độ tương phản cho chỉ báo focus).
 
 Bắt buộc:
 - Bọc hiệu ứng hover vào `@media (hover: hover)` để thiết bị cảm ứng không bị kẹt trạng thái.
@@ -209,8 +209,8 @@ Chữ Cocoa, gạch chân 3px Amber (offset 2px). Không dùng Cyan/Copper làm 
 
 Nền Cream, chữ Cocoa, viền 2px Cocoa, radius 14px, padding 10px 14px, placeholder Cocoa 60%. Label Nunito 700 14px phía trên.
 - Hover: bóng `--shadow-hard-sm`, nền hơi Sand.
-- Focus: bóng `--shadow-focus` (vòng Cyan), viền Cocoa 3px.
-- Lỗi: viền Red 3px, icon + thông báo chữ Cocoa bên dưới (không chỉ màu).
+- Focus: vòng focus (dải Cyan + viền ngoài `edge` 3px), viền input giữ nguyên.
+- Lỗi: viền Red 3px (chế độ tối: viền Orange 3px, vì Red trên Cocoa chỉ đạt 2.8:1), icon + thông báo chữ bên dưới (không chỉ màu).
 
 ### Card
 **Role:** Đề bài, contest, bài blog, khối thống kê
@@ -459,7 +459,7 @@ Quy tắc riêng cho chế độ tối:
   --shadow-hard-md: 4px 4px 0 0 var(--shadow-color, #4D2A00);
   --shadow-hard-lg: 6px 6px 0 0 var(--shadow-color, #4D2A00);
   --shadow-hard-xl: 8px 8px 0 0 var(--shadow-color, #4D2A00);
-  --shadow-focus: 0 0 0 3px #FFF1D1, 0 0 0 6px #00B7CD;
+  --shadow-focus: 0 0 0 3px #00B7CD; /* dùng cùng outline 3px var(--edge), offset 3px */
 
   /* Motion */
   --duration-fast: 120ms;
@@ -523,7 +523,7 @@ Quy tắc riêng cho chế độ tối:
   --shadow-hard-md: 4px 4px 0 0 var(--shadow-color, #4D2A00);
   --shadow-hard-lg: 6px 6px 0 0 var(--shadow-color, #4D2A00);
   --shadow-hard-xl: 8px 8px 0 0 var(--shadow-color, #4D2A00);
-  --shadow-focus: 0 0 0 3px #FFF1D1, 0 0 0 6px #00B7CD;
+  --shadow-focus: 0 0 0 3px #00B7CD; /* dùng cùng outline 3px var(--edge), offset 3px */
 
   /* Motion */
   --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
