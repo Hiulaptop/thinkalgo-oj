@@ -26,6 +26,14 @@ npm run build && npm start
 - `src/components/shell/` Navbar, Footer, nút chuyển chế độ
 - `src/stores/ui-store.ts` + `components/providers/ui-store-provider.tsx` state giao diện (Zustand, tạo theo provider)
 
+## Gọi API Django
+
+- Schema OpenAPI do Django xuất: `python manage.py spectacular --file web/openapi/schema.yml` (hoặc `npm run api:schema` khi đã kích hoạt môi trường Python), rồi `npm run api:types` sinh `src/lib/api/schema.d.ts`. Cả hai file được commit; API đổi mà type không đổi theo thì `tsc` lỗi.
+- `src/lib/api/client.ts` (`serverApi()`): máy khách phía server dùng `openapi-fetch`, gọi `DJANGO_INTERNAL_URL` (mặc định `http://127.0.0.1:8000`) với `Host` là `DJANGO_HOST`, chuyển tiếp `Cookie`, `X-Real-IP`, `X-Forwarded-Proto`, `Accept-Language`, `X-Request-Id`. Trình duyệt không gọi trực tiếp `/api/v1`.
+- `src/lib/api/internal-fetch.ts`: `fetch` của Node bỏ qua header `Host` nên dùng `node:http` (Django kiểm tra `ALLOWED_HOSTS`).
+- Trang `/dev/api` (chỉ môi trường phát triển) gọi `me` và `problems` để kiểm tra đường ống.
+- Để Django ghi đúng IP người dùng khi Next.js gọi qua loopback, đặt `TRUSTED_PROXY_IPS=127.0.0.1,::1` cho Django.
+
 ## Kết quả đối chiếu với `style.md` (2026-10-22)
 
 Kiểm bằng Chromium (Playwright) trên dev server, ảnh chụp ở sáng/tối × desktop 1280px / mobile 375px:

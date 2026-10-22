@@ -79,6 +79,25 @@ Bài nộp: chủ bài nộp, người có quyền xem mã nguồn, ban tổ ch�
 - [Rò thông tin qua thông báo lỗi/`detail` theo ngôn ngữ] → `code` ổn định, `detail` không chứa dữ liệu nội bộ.
 - [Chi tiết đề dạng HTML: XSS] → Chỉ dùng pipeline render đã dùng cho Jinja; Next.js hiển thị trong vùng riêng, không thêm tuỳ biến HTML mới.
 
+## Kết quả thực hiện (2026-10-22)
+
+Đã làm trong sandbox với Django 4.2.30 + MariaDB 10.11, dữ liệu mẫu có 7 vai trò (ẩn danh, người dùng thường, thành viên tổ chức, tester, tác giả, người đang thi, superuser). **Không viết file test**; các script so sánh nằm ngoài repo (scratchpad) và vẫn có thể được đề xuất thành kịch bản chính thức nếu bạn duyệt.
+
+Cách dùng lại logic Jinja (Decisions 2 điều chỉnh): thay vì tách "lớp dịch vụ", `judge/api/v1/adapters.py` **tạo thể hiện của chính lớp view Jinja** (`ProblemList`, `AllSubmissions`, `UserList`, `ModernBlogList`) và gọi `get_queryset()`; riêng `ProblemList` được kế thừa để bỏ phần đọc session (`GET_with_session`). Nhờ đó điều kiện quyền, lọc và sắp xếp là cùng một đoạn mã, không phải bản sao. Quyền của chi tiết dùng `Problem.is_accessible_by`, `Submission.can_see_detail`, `BlogPost.can_see`.
+
+Kết quả so sánh song song với HTML trang Jinja thật (0 khác biệt ở mọi mục): chi tiết đề 56, danh sách đề 98, danh sách bài nộp 49, chi tiết + mã nguồn bài nộp 84, xếp hạng 6, danh sách blog 28, chi tiết blog 28.
+
+Phát hiện khi làm:
+- `/api/token/*` thực ra nằm dưới `/accounts/` (`register_patterns`), không phải gốc; `/api/v1/` phải đặt ở `urlpatterns` cấp trên cùng.
+- **`fetch` của Node bỏ qua header `Host` do người gọi đặt** và dùng host của URL, nên Next.js gọi `http://127.0.0.1:8000` bị Django từ chối `DisallowedHost` (400). Đã thử bằng Django với `ALLOWED_HOSTS=oj.test`. Giải pháp: `web/src/lib/api/internal-fetch.ts` dùng `node:http`. Phương án đã loại: `USE_X_FORWARDED_HOST` (tin header toàn cục), thêm `127.0.0.1` vào `ALLOWED_HOSTS` (mở đường cho tấn công Host header qua nginx).
+- DRF với `SessionAuthentication` trả 403 cho `NotAuthenticated`; API đặt lại 401 kèm `WWW-Authenticate: Bearer` (API cũng nhận Bearer qua `APIMiddleware`). Cần ánh xạ `Http404` và `PermissionDenied` của Django trước khi gán `code`, nếu không `code` là `error`.
+- Trang đăng nhập bắt buộc cho chi tiết bài nộp (`LoginRequiredMixin`) nên ẩn danh nhận 401; không có quyền nhận 403 (giống Jinja, không phải 404).
+- Schema ban đầu thiếu tham số/phong bì phân trang vì `APIView` không dùng paginator trong drf-spectacular; `tsc` trên type sinh ra bắt được ngay. Đã khai báo tường minh.
+- Danh sách blog: bài ghim đầu tiên được Jinja vẽ ở khối "hero" riêng; API trả nó như một phần tử đầu danh sách để frontend quyết định cách hiển thị.
+- Trang chủ `/` dùng `PostList` (khác `ModernBlogList` của `/blogs/`) nên chưa có API riêng.
+
+Chưa làm: lọc bài nộp theo người dùng/đề (`/submissions/user/<u>/`, `/problem/<mã>/submissions/`) và trạng thái chấm trực tiếp, đo số truy vấn/COUNT của danh sách lớn, cache, kiểm tra OpenAPI trong CI (so khác biệt `web/openapi/schema.yml`), Python 3.11 (Docker) và 3.12 (CI) (thử bằng 3.13), dữ liệu lớn.
+
 ## Migration Plan
 
 Chỉ thêm mới (`/api/v1/`), không đổi hành vi hiện có. Triển khai cùng backend như thường lệ; frontend chưa gọi cho tới change trang đầu tiên. Hoàn tác: gỡ include `/api/v1/` khỏi `urls.py` và bỏ phụ thuộc.

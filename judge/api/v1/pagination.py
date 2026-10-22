@@ -1,3 +1,5 @@
+from drf_spectacular.utils import OpenApiParameter
+from rest_framework import serializers
 from rest_framework.pagination import BasePagination
 from rest_framework.response import Response
 
@@ -61,3 +63,24 @@ class HasNextPagination(BasePagination):
             {'name': 'page_size', 'required': False, 'in': 'query',
              'schema': {'type': 'integer', 'minimum': 1, 'maximum': MAX_PAGE_SIZE, 'default': DEFAULT_PAGE_SIZE}},
         ]
+
+
+PAGINATION_PARAMETERS = [
+    OpenApiParameter('page', int, description='Số trang, từ 1.'),
+    OpenApiParameter('page_size', int, description=f'Số phần tử mỗi trang, tối đa {MAX_PAGE_SIZE}.'),
+]
+
+_paginated_cache = {}
+
+
+def paginated(item_serializer):
+    """Serializer mô tả phong bì phân trang `{page, page_size, has_next, results}` cho OpenAPI."""
+    name = f'Paginated{item_serializer.__name__.replace("Serializer", "")}List'
+    if name not in _paginated_cache:
+        _paginated_cache[name] = type(name, (serializers.Serializer,), {
+            'page': serializers.IntegerField(min_value=1),
+            'page_size': serializers.IntegerField(min_value=1, max_value=MAX_PAGE_SIZE),
+            'has_next': serializers.BooleanField(),
+            'results': item_serializer(many=True),
+        })
+    return _paginated_cache[name]

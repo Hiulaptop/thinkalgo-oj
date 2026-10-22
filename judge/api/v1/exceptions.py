@@ -1,3 +1,5 @@
+from django.core.exceptions import PermissionDenied as DjangoPermissionDenied
+from django.http import Http404
 from django.utils.translation import gettext as _
 from rest_framework import exceptions
 from rest_framework.response import Response
@@ -28,6 +30,11 @@ class ApiError(exceptions.APIException):
 
 
 def api_exception_handler(exc, context):
+    # DRF tự đổi Http404/PermissionDenied của Django; đổi trước để ánh xạ `code` đúng.
+    if isinstance(exc, Http404):
+        exc = exceptions.NotFound()
+    elif isinstance(exc, DjangoPermissionDenied):
+        exc = exceptions.PermissionDenied()
     response = exception_handler(exc, context)
     if response is None:
         return None
@@ -56,4 +63,10 @@ def api_exception_handler(exc, context):
                           for key, value in exc.detail.items()}
     headers = {key: value for key, value in response.items()
                if key.lower() in ('retry-after', 'www-authenticate', 'allow')}
-    return Response(data, status=response.status_code, headers=headers)
+    status = response.status_code
+    if isinstance(exc, exceptions.NotAuthenticated):
+        # SessionAuthentication không có WWW-Authenticate nên DRF mặc định đổi thành 403.
+        # API cũng nhận `Authorization: Bearer` (judge.middleware.APIMiddleware), nên khai báo Bearer.
+        status = 401
+        headers['WWW-Authenticate'] = 'Bearer realm="API"'
+    return Response(data, status=status, headers=headers)

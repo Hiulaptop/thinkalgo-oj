@@ -1,0 +1,1044 @@
+openapi: 3.0.3
+info:
+  title: ThinkAlgo OJ API
+  version: 1.0.0
+  description: API đọc cho frontend Next.js. Quyền truy cập giống trang web tương
+    ứng.
+paths:
+  /api/v1/blog/posts:
+    get:
+      operationId: blog_posts_list
+      description: Danh sách bài blog công khai; dùng đúng truy vấn của trang /blogs/
+        (tìm kiếm, thẻ, sắp xếp).
+      parameters:
+      - in: query
+        name: page
+        schema:
+          type: integer
+        description: Số trang, từ 1.
+      - in: query
+        name: page_size
+        schema:
+          type: integer
+        description: Số phần tử mỗi trang, tối đa 100.
+      - in: query
+        name: q
+        schema:
+          type: string
+      - in: query
+        name: sort
+        schema:
+          type: string
+          enum:
+          - latest
+          - top
+      - in: query
+        name: tag
+        schema:
+          type: string
+      tags:
+      - blog
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedBlogPostListItemList'
+          description: ''
+  /api/v1/blog/posts/{id}:
+    get:
+      operationId: blog_posts_retrieve
+      description: Chi tiết bài blog; 404 nếu chưa xuất bản/không có quyền (giống
+        PostView.get_object).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - blog
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlogPostDetail'
+          description: ''
+  /api/v1/me:
+    get:
+      operationId: me
+      description: Người dùng hiện tại, hoặc trạng thái ẩn danh. Không bao giờ trả
+        email/IP.
+      tags:
+      - me
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Me'
+          description: ''
+  /api/v1/problem-filters:
+    get:
+      operationId: problem_filters
+      tags:
+      - problem-filters
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemFilters'
+          description: ''
+  /api/v1/problems:
+    get:
+      operationId: problems_list
+      description: Danh sách đề người dùng được xem; dùng đúng logic lọc/sắp xếp của
+        trang /problems.
+      parameters:
+      - in: query
+        name: category
+        schema:
+          type: integer
+        description: Id nhóm đề.
+      - in: query
+        name: has_public_editorial
+        schema:
+          type: integer
+          enum:
+          - 0
+          - 1
+      - in: query
+        name: hide_solved
+        schema:
+          type: integer
+          enum:
+          - 0
+          - 1
+        description: '1: ẩn đề đã AC (cần đăng nhập).'
+      - in: query
+        name: order
+        schema:
+          type: string
+        description: Khoá sắp xếp, tiền tố "-" để giảm dần.
+      - in: query
+        name: page
+        schema:
+          type: integer
+        description: Số trang, từ 1.
+      - in: query
+        name: page_size
+        schema:
+          type: integer
+        description: Số phần tử mỗi trang, tối đa 100.
+      - in: query
+        name: point_end
+        schema:
+          type: number
+          format: double
+      - in: query
+        name: point_start
+        schema:
+          type: number
+          format: double
+      - in: query
+        name: search
+        schema:
+          type: string
+        description: Tìm theo mã, tên, nguồn, tên đã dịch.
+      - in: query
+        name: show_types
+        schema:
+          type: integer
+          enum:
+          - 0
+          - 1
+        description: '1: kèm danh sách loại đề.'
+      - in: query
+        name: type
+        schema:
+          type: array
+          items:
+            type: integer
+        description: Id loại đề (lặp lại tham số).
+        explode: true
+      tags:
+      - problems
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedProblemListItemList'
+          description: ''
+  /api/v1/problems/{code}:
+    get:
+      operationId: problems_retrieve
+      description: Chi tiết đề; 404 nếu không tồn tại hoặc không có quyền xem (không
+        lộ sự tồn tại).
+      parameters:
+      - in: path
+        name: code
+        schema:
+          type: string
+        required: true
+      tags:
+      - problems
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+          description: ''
+  /api/v1/submissions:
+    get:
+      operationId: submissions_list
+      description: Danh sách bài nộp theo đúng quy tắc hiển thị của trang /submissions/.
+      parameters:
+      - in: query
+        name: language
+        schema:
+          type: array
+          items:
+            type: string
+        explode: true
+      - in: query
+        name: organization
+        schema:
+          type: integer
+      - in: query
+        name: page
+        schema:
+          type: integer
+        description: Số trang, từ 1.
+      - in: query
+        name: page_size
+        schema:
+          type: integer
+        description: Số phần tử mỗi trang, tối đa 100.
+      - in: query
+        name: status
+        schema:
+          type: array
+          items:
+            type: string
+        explode: true
+      tags:
+      - submissions
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedSubmissionListItemList'
+          description: ''
+  /api/v1/submissions/{id}:
+    get:
+      operationId: submissions_retrieve
+      description: 'Chi tiết bài nộp. Giống trang Jinja: cần đăng nhập, và chỉ người
+        có quyền xem mới thấy.'
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - submissions
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmissionDetail'
+          description: ''
+  /api/v1/submissions/{id}/source:
+    get:
+      operationId: submissions_source
+      description: 'Mã nguồn bài nộp: cùng điều kiện với chi tiết; ngôn ngữ chỉ nhận
+        tệp thì chỉ superuser xem được.'
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - submissions
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmissionSource'
+          description: ''
+  /api/v1/users:
+    get:
+      operationId: users_ranking
+      description: Bảng xếp hạng người dùng công khai; cùng truy vấn và cách tính
+        hạng với trang /users/.
+      parameters:
+      - in: query
+        name: order
+        schema:
+          type: string
+          enum:
+          - -performance_points
+          - -points
+          - -problem_count
+          - -rating
+          - performance_points
+          - points
+          - problem_count
+          - rating
+      - in: query
+        name: page
+        schema:
+          type: integer
+        description: Số trang, từ 1.
+      - in: query
+        name: page_size
+        schema:
+          type: integer
+        description: Số phần tử mỗi trang, tối đa 100.
+      tags:
+      - users
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedRankedUserList'
+          description: ''
+components:
+  schemas:
+    Batch:
+      type: object
+      properties:
+        id:
+          type: integer
+          nullable: true
+          description: null cho nhóm test không thuộc batch nào.
+        points:
+          type: number
+          format: double
+          nullable: true
+        total:
+          type: number
+          format: double
+          nullable: true
+        status:
+          type: string
+          nullable: true
+        cases:
+          type: array
+          items:
+            $ref: '#/components/schemas/TestCase'
+          description: Chỉ có khi được phép xem trạng thái từng test.
+      required:
+      - id
+      - points
+      - status
+      - total
+    BlogPostDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+        slug:
+          type: string
+        title:
+          type: string
+        summary_html:
+          type: string
+          description: HTML đã render và làm sạch.
+        publish_on:
+          type: string
+          format: date-time
+        sticky:
+          type: boolean
+        score:
+          type: integer
+        authors:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserRef'
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/BlogTag'
+        content_html:
+          type: string
+          description: HTML đã render và làm sạch (cùng pipeline với trang Jinja).
+        organization:
+          type: string
+          nullable: true
+          description: Slug tổ chức nếu bài riêng của tổ chức.
+      required:
+      - authors
+      - content_html
+      - id
+      - organization
+      - publish_on
+      - score
+      - slug
+      - sticky
+      - summary_html
+      - tags
+      - title
+    BlogPostListItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        slug:
+          type: string
+        title:
+          type: string
+        summary_html:
+          type: string
+          description: HTML đã render và làm sạch.
+        publish_on:
+          type: string
+          format: date-time
+        sticky:
+          type: boolean
+        score:
+          type: integer
+        authors:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserRef'
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/BlogTag'
+      required:
+      - authors
+      - id
+      - publish_on
+      - score
+      - slug
+      - sticky
+      - summary_html
+      - tags
+      - title
+    BlogTag:
+      type: object
+      properties:
+        name:
+          type: string
+        slug:
+          type: string
+      required:
+      - name
+      - slug
+    LanguageRef:
+      type: object
+      properties:
+        key:
+          type: string
+        name:
+          type: string
+          description: Tên ngắn dùng trong danh sách.
+      required:
+      - key
+      - name
+    Me:
+      type: object
+      properties:
+        authenticated:
+          type: boolean
+        username:
+          type: string
+          nullable: true
+        display_name:
+          type: string
+          nullable: true
+        avatar_url:
+          type: string
+          format: uri
+          nullable: true
+        site_theme:
+          $ref: '#/components/schemas/SiteThemeEnum'
+        in_contest:
+          type: boolean
+          description: Người dùng đang tham gia một kỳ thi (bị hạn chế truy cập).
+        contest_key:
+          type: string
+          nullable: true
+      required:
+      - authenticated
+      - avatar_url
+      - contest_key
+      - display_name
+      - in_contest
+      - site_theme
+      - username
+    NamedRef:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+      required:
+      - id
+      - name
+    NullEnum:
+      enum:
+      - null
+    OrganizationRef:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        slug:
+          type: string
+      required:
+      - id
+      - name
+      - slug
+    PaginatedBlogPostListItemList:
+      type: object
+      properties:
+        page:
+          type: integer
+          minimum: 1
+        page_size:
+          type: integer
+          maximum: 100
+          minimum: 1
+        has_next:
+          type: boolean
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/BlogPostListItem'
+      required:
+      - has_next
+      - page
+      - page_size
+      - results
+    PaginatedProblemListItemList:
+      type: object
+      properties:
+        page:
+          type: integer
+          minimum: 1
+        page_size:
+          type: integer
+          maximum: 100
+          minimum: 1
+        has_next:
+          type: boolean
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProblemListItem'
+      required:
+      - has_next
+      - page
+      - page_size
+      - results
+    PaginatedRankedUserList:
+      type: object
+      properties:
+        page:
+          type: integer
+          minimum: 1
+        page_size:
+          type: integer
+          maximum: 100
+          minimum: 1
+        has_next:
+          type: boolean
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/RankedUser'
+      required:
+      - has_next
+      - page
+      - page_size
+      - results
+    PaginatedSubmissionListItemList:
+      type: object
+      properties:
+        page:
+          type: integer
+          minimum: 1
+        page_size:
+          type: integer
+          maximum: 100
+          minimum: 1
+        has_next:
+          type: boolean
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubmissionListItem'
+      required:
+      - has_next
+      - page
+      - page_size
+      - results
+    ProblemDetail:
+      type: object
+      properties:
+        code:
+          type: string
+        name:
+          type: string
+        translated:
+          type: boolean
+          description: Nội dung đã được dịch sang ngôn ngữ yêu cầu.
+        description_html:
+          type: string
+          description: HTML đã render và làm sạch (cùng pipeline với trang Jinja).
+        time_limit:
+          type: number
+          format: double
+        memory_limit:
+          type: integer
+          description: KB.
+        points:
+          type: number
+          format: double
+        partial:
+          type: boolean
+        group:
+          type: string
+        types:
+          type: array
+          items:
+            type: string
+        source:
+          type: string
+        allowed_languages:
+          type: array
+          items:
+            type: string
+          description: Khoá ngôn ngữ cho phép.
+        ac_rate:
+          type: number
+          format: double
+        user_count:
+          type: integer
+        is_public:
+          type: boolean
+        status:
+          nullable: true
+          oneOf:
+          - $ref: '#/components/schemas/StatusEnum'
+          - $ref: '#/components/schemas/NullEnum'
+        can_edit:
+          type: boolean
+        submission_limit:
+          type: integer
+          nullable: true
+          description: Giới hạn lần nộp trong kỳ thi hiện tại.
+      required:
+      - ac_rate
+      - allowed_languages
+      - can_edit
+      - code
+      - description_html
+      - group
+      - is_public
+      - memory_limit
+      - name
+      - partial
+      - points
+      - source
+      - status
+      - submission_limit
+      - time_limit
+      - translated
+      - types
+      - user_count
+    ProblemFilters:
+      type: object
+      properties:
+        groups:
+          type: array
+          items:
+            $ref: '#/components/schemas/NamedRef'
+        types:
+          type: array
+          items:
+            $ref: '#/components/schemas/NamedRef'
+      required:
+      - groups
+      - types
+    ProblemListItem:
+      type: object
+      properties:
+        code:
+          type: string
+        name:
+          type: string
+          description: Tên theo ngôn ngữ yêu cầu, rơi về tên gốc nếu chưa dịch.
+        group:
+          type: string
+        points:
+          type: number
+          format: double
+        partial:
+          type: boolean
+        ac_rate:
+          type: number
+          format: double
+        user_count:
+          type: integer
+        date:
+          type: string
+          format: date-time
+          nullable: true
+        has_public_editorial:
+          type: boolean
+        types:
+          type: array
+          items:
+            type: string
+          description: Chỉ có khi show_types=1.
+        status:
+          nullable: true
+          description: |-
+            Trạng thái của người xem; null nếu chưa nộp hoặc ẩn danh.
+
+            * `solved` - solved
+            * `attempted` - attempted
+          oneOf:
+          - $ref: '#/components/schemas/StatusEnum'
+          - $ref: '#/components/schemas/NullEnum'
+      required:
+      - ac_rate
+      - code
+      - date
+      - group
+      - has_public_editorial
+      - name
+      - partial
+      - points
+      - status
+      - user_count
+    ProblemRef:
+      type: object
+      properties:
+        code:
+          type: string
+        name:
+          type: string
+      required:
+      - code
+      - name
+    RankedUser:
+      type: object
+      properties:
+        rank:
+          type: integer
+        username:
+          type: string
+        display_name:
+          type: string
+        avatar_url:
+          type: string
+          format: uri
+        display_rank:
+          type: string
+        rating:
+          type: integer
+          nullable: true
+        rating_class:
+          type: string
+          nullable: true
+        points:
+          type: number
+          format: double
+        performance_points:
+          type: number
+          format: double
+        problem_count:
+          type: integer
+        organizations:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrganizationRef'
+      required:
+      - avatar_url
+      - display_name
+      - display_rank
+      - organizations
+      - performance_points
+      - points
+      - problem_count
+      - rank
+      - rating
+      - rating_class
+      - username
+    SiteThemeEnum:
+      enum:
+      - light
+      - dark
+      - auto
+      type: string
+      description: |-
+        * `light` - light
+        * `dark` - dark
+        * `auto` - auto
+    StatusEnum:
+      enum:
+      - solved
+      - attempted
+      type: string
+      description: |-
+        * `solved` - solved
+        * `attempted` - attempted
+    SubmissionDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+        date:
+          type: string
+          format: date-time
+        user:
+          $ref: '#/components/schemas/UserRef'
+        problem:
+          $ref: '#/components/schemas/ProblemRef'
+        language:
+          $ref: '#/components/schemas/LanguageRef'
+        result:
+          type: string
+          nullable: true
+          description: AC, WA, TLE... hoặc null khi chưa chấm xong.
+        status:
+          type: string
+          description: QU, P, G, D, IE, CE, AB.
+        is_graded:
+          type: boolean
+        points:
+          type: number
+          format: double
+          nullable: true
+        case_points:
+          type: number
+          format: double
+        case_total:
+          type: number
+          format: double
+        time:
+          type: number
+          format: double
+          nullable: true
+        memory:
+          type: number
+          format: double
+          nullable: true
+          description: KB.
+        contest_key:
+          type: string
+          nullable: true
+        can_view:
+          type: boolean
+          description: Người xem được mở chi tiết/mã nguồn của bài nộp này.
+        error:
+          type: string
+          nullable: true
+          description: Thông báo biên dịch/lỗi hệ thống.
+        batches:
+          type: array
+          items:
+            $ref: '#/components/schemas/Batch'
+        test_case_visibility:
+          $ref: '#/components/schemas/TestCaseVisibilityEnum'
+        time_limit:
+          type: number
+          format: double
+        memory_limit:
+          type: integer
+      required:
+      - batches
+      - can_view
+      - case_points
+      - case_total
+      - contest_key
+      - date
+      - error
+      - id
+      - is_graded
+      - language
+      - memory
+      - memory_limit
+      - points
+      - problem
+      - result
+      - status
+      - test_case_visibility
+      - time
+      - time_limit
+      - user
+    SubmissionListItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        date:
+          type: string
+          format: date-time
+        user:
+          $ref: '#/components/schemas/UserRef'
+        problem:
+          $ref: '#/components/schemas/ProblemRef'
+        language:
+          $ref: '#/components/schemas/LanguageRef'
+        result:
+          type: string
+          nullable: true
+          description: AC, WA, TLE... hoặc null khi chưa chấm xong.
+        status:
+          type: string
+          description: QU, P, G, D, IE, CE, AB.
+        is_graded:
+          type: boolean
+        points:
+          type: number
+          format: double
+          nullable: true
+        case_points:
+          type: number
+          format: double
+        case_total:
+          type: number
+          format: double
+        time:
+          type: number
+          format: double
+          nullable: true
+        memory:
+          type: number
+          format: double
+          nullable: true
+          description: KB.
+        contest_key:
+          type: string
+          nullable: true
+        can_view:
+          type: boolean
+          description: Người xem được mở chi tiết/mã nguồn của bài nộp này.
+      required:
+      - can_view
+      - case_points
+      - case_total
+      - contest_key
+      - date
+      - id
+      - is_graded
+      - language
+      - memory
+      - points
+      - problem
+      - result
+      - status
+      - time
+      - user
+    SubmissionSource:
+      type: object
+      properties:
+        language:
+          $ref: '#/components/schemas/LanguageRef'
+        source:
+          type: string
+      required:
+      - language
+      - source
+    TestCase:
+      type: object
+      properties:
+        case:
+          type: integer
+        status:
+          type: string
+        time:
+          type: number
+          format: double
+          nullable: true
+        memory:
+          type: number
+          format: double
+          nullable: true
+        points:
+          type: number
+          format: double
+          nullable: true
+        total:
+          type: number
+          format: double
+          nullable: true
+      required:
+      - case
+      - memory
+      - points
+      - status
+      - time
+      - total
+    TestCaseVisibilityEnum:
+      enum:
+      - all
+      - batch
+      - none
+      type: string
+      description: |-
+        * `all` - all
+        * `batch` - batch
+        * `none` - none
+    UserRef:
+      type: object
+      properties:
+        username:
+          type: string
+        display_name:
+          type: string
+      required:
+      - display_name
+      - username
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid

@@ -7,7 +7,7 @@ from rest_framework.views import APIView
 
 from judge.api.v1.adapters import build_problem_list, problem_list_queryset
 from judge.api.v1.exceptions import ApiError
-from judge.api.v1.pagination import HasNextPagination
+from judge.api.v1.pagination import HasNextPagination, PAGINATION_PARAMETERS, paginated
 from judge.api.v1.serializers.problem import (ProblemDetailSerializer, ProblemFiltersSerializer,
                                               ProblemListItemSerializer)
 from judge.jinja2.markdown import markdown
@@ -39,8 +39,8 @@ def _status(problem_id, solved, attempted):
 class ProblemListView(APIView):
     """Danh sách đề người dùng được xem; dùng đúng logic lọc/sắp xếp của trang /problems."""
 
-    @extend_schema(parameters=LIST_PARAMETERS, responses=ProblemListItemSerializer(many=True),
-                   operation_id='problems_list')
+    @extend_schema(parameters=LIST_PARAMETERS + PAGINATION_PARAMETERS,
+                   responses=paginated(ProblemListItemSerializer), operation_id='problems_list')
     def get(self, request):
         django_request = request._request
         view = build_problem_list(django_request)
