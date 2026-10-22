@@ -44,16 +44,20 @@ thinkalgo-oj/
   openspec/, AGENTS.md, DESIGN.md, plan.md
 ```
 
-### 3.2 Định tuyến nginx (chuyển dần)
+### 3.2 Định tuyến nginx
 
-```
-/api/*, /admin/*, /static/*, /media/*, /accounts/*  → Django :8000
-/event (ws)                                         → wsevent
-các trang đã chuyển (ví dụ /problems, /problem/*)   → Next.js :3000
-/ (còn lại)                                         → Django :8000
-```
+Đã nghiên cứu và thiết kế chi tiết trong change `monorepo-compose-layout`
+(`openspec/changes/monorepo-compose-layout/`, kèm bản nháp cấu hình `nginx-draft/` đã qua
+`nginx -t` và 36 kịch bản định tuyến). Tóm tắt:
 
-Mỗi trang chuyển xong thì thêm một `location` trỏ sang Next.js.
+- nginx vẫn native; cấu hình đưa vào repo (`deploy/nginx/`) và được CD đồng bộ.
+- Mỗi trang đã chuyển có 3 trạng thái: Django, `preview` (cookie `web_preview=1`), `live`.
+  Next.js lỗi thì nginx tự thử lại trên Django (GET/HEAD); POST luôn về Django.
+- Khớp URL **chính xác** (`location =` hoặc regex có `$`), không dùng prefix rộng như `/problem/`
+  vì sẽ che các route con của Django. Dấu `/` cuối phải giống hệt Django (`/problems` nhưng `/submissions/`).
+- `/_next/` và `/web-healthz` luôn tới Next.js; `/event/`, `/channels/`, `/static/`, `/media/` giữ nguyên.
+- Phát hiện cần xử lý: Django đang thấy IP người dùng là `127.0.0.1` (uwsgi `--http-socket` +
+  `proxy_pass`); trang HTML tĩnh của Next.js mặc định `s-maxage=31536000`.
 
 ### 3.3 Design system
 
@@ -66,10 +70,10 @@ Mỗi trang chuyển xong thì thêm một `location` trỏ sang Next.js.
 
 | # | Change (tên gợi ý) | Nội dung chính |
 |---|---|---|
-| 1 | `monorepo-compose-layout` | Thêm `web/` và service `web` vào compose (chưa nhận traffic). Tách pipeline CI cho hai image. Đưa cấu hình nginx production vào repo. Cập nhật `CI-CD.md` |
-| 2 | `api-foundation` | Chọn framework API (DRF hoặc Django Ninja), định dạng lỗi, phân trang, quyền, schema OpenAPI, sinh type TS. Bắt đầu với problem list/detail và submission list |
-| 3 | `web-bootstrap` | Dựng Next.js 15, token từ `style.md`, layout (navbar, footer) giống bản Jinja, i18n (locale `vi` hiện dùng gettext của Django) |
-| 4 | Mỗi trang một change | Thứ tự rủi ro thấp trước: blog → problem list/detail → ranking → submission list → contest → user/profile. Mỗi trang kèm bản vẽ và ảnh chụp đối chiếu |
+| 1 | `monorepo-compose-layout` | **Đã soạn spec** (`openspec/changes/`). Thêm image/service `web` (chưa nhận traffic), đưa cấu hình nginx vào repo, định tuyến chuyển dần có dự phòng, sửa IP thật. Chờ duyệt |
+| 2 | `api-foundation` | **Đã soạn spec**. DRF ghim `<3.18` (3.18 cần Django ≥5.2), drf-spectacular, API đọc đợt 1 (me, đề, bài nộp, xếp hạng, blog), quyền dùng lại phương thức của model. Chờ duyệt |
+| 3 | `web-bootstrap-playful` (**đã làm**, xem `openspec/changes/web-bootstrap-playful/`) | Dựng Next.js 15, token từ `style.md`, layout (navbar, footer) giống bản Jinja, i18n (locale `vi` hiện dùng gettext của Django) |
+| 4 | Mỗi trang một change (bản vẽ đợt 1 ở `docs/design/web-pages.md`, chờ duyệt) | Thứ tự rủi ro thấp trước: blog → problem list/detail → ranking → submission list → contest → user/profile. Mỗi trang kèm bản vẽ và ảnh chụp đối chiếu |
 | 5 | `retire-jinja-templates` | Khi mọi trang đã chuyển: bỏ template Jinja, compressor, SCSS cũ. Giữ API và admin |
 
 Với mỗi trang: viết endpoint API (kèm kiểm tra quyền giống view cũ) → vẽ bản phác → dựng trang → đối chiếu → chuyển route nginx.
@@ -123,6 +127,11 @@ Lộ trình tổng thể sau giai đoạn UI:
 
 ## 8. Bước tiếp theo
 
-- Đọc `CI-CD.md`, `.github/workflows`, `PERMISSIONS.md` để hoàn thiện mục 5 và 7.
-- Soạn change #1 `monorepo-compose-layout` bằng `/opsx:propose`, gửi để approve.
-- Để commit spec và file này vào `thinkalgo-oj`, cần attach lại repo với quyền `push`.
+Đã làm: `web-bootstrap-playful` (nền tảng web), soạn spec `monorepo-compose-layout` và `api-foundation`,
+vẽ bản phác các trang đợt 1 (`docs/design/web-pages.md`).
+
+Cần bạn quyết định, theo thứ tự:
+1. Duyệt `monorepo-compose-layout` (chụp `nginx -T` thật trên server là bước đầu tiên, cần bạn hoặc người có quyền SSH).
+2. Duyệt `api-foundation` và kịch bản kiểm thử quyền được đề xuất trong `design.md`.
+3. Duyệt bản vẽ trang đợt 1 trong `docs/design/web-pages.md`.
+4. Trả lời các câu hỏi mở ở mục 7 và trong `design.md` của từng change.
