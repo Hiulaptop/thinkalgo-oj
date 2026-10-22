@@ -25,7 +25,7 @@ export default function HomePage() {
         </p>
         <div className="flex flex-wrap gap-3">
           <Button asChild>
-            <a href="/problems/">Xem đề bài</a>
+            <a href="/problems">Xem đề bài</a>
           </Button>
           <Button asChild variant="secondary">
             <a href="/contests/">Tham gia cuộc thi</a>

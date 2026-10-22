@@ -14,15 +14,16 @@ import { useUiStore } from "@/components/providers/ui-store-provider";
  * nên liên kết tới đó dùng <a> thường để tải đầy đủ trang, không dùng <Link>.
  */
 const NAV_ITEMS = [
-  { href: "/problems/", label: "Đề bài" },
+  { href: "/problems", label: "Đề bài" },
   { href: "/submissions/", label: "Bài nộp" },
   { href: "/contests/", label: "Cuộc thi" },
   { href: "/users/", label: "Xếp hạng" },
-  { href: "/blog/", label: "Blog" },
+  { href: "/blogs/", label: "Blog" },
 ];
 
 function isCurrent(pathname: string, href: string) {
-  return pathname === href.replace(/\/$/, "") || pathname.startsWith(href);
+  const base = href.replace(/\/$/, "");
+  return pathname === base || pathname.startsWith(`${base}/`);
 }
 
 const navItemClass =
@@ -89,7 +90,7 @@ export function Navbar() {
         <div className="ml-auto flex items-center gap-2 lg:ml-0">
           <ThemeToggle />
           <Button asChild size="sm" className="hidden sm:inline-flex">
-            <a href="/accounts/login/">Đăng nhập</a>
+            <a href="/login/">Đăng nhập</a>
           </Button>
           <Button
             ref={buttonRef}
@@ -132,7 +133,7 @@ export function Navbar() {
               })}
               <li className="pt-1 sm:hidden">
                 <Button asChild className="w-full">
-                  <a href="/accounts/login/">Đăng nhập</a>
+                  <a href="/login/">Đăng nhập</a>
                 </Button>
               </li>
             </ul>
