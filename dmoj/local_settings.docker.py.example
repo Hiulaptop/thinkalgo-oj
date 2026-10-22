@@ -17,6 +17,10 @@ ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',') if os.environ.get
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 CSRF_TRUSTED_ORIGINS = os.environ.get('CSRF_TRUSTED_ORIGINS', '').split(',') if os.environ.get('CSRF_TRUSTED_ORIGINS') else []
 
+# IP thật của người dùng: nginx gửi X-Real-IP (đã ghi đè header do client gửi). Chỉ tin header
+# này khi kết nối đến từ proxy tin cậy, vd TRUSTED_PROXY_IPS=127.0.0.1,::1. Mặc định tắt.
+TRUSTED_PROXY_IPS = tuple(ip.strip() for ip in os.environ.get('TRUSTED_PROXY_IPS', '').split(',') if ip.strip())
+
 CACHES = {
     'default': {
         'BACKEND': 'django_redis.cache.RedisCache',

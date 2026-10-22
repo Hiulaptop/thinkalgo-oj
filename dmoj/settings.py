@@ -509,6 +509,7 @@ INSTALLED_APPS += (
 )
 
 MIDDLEWARE = (
+    'judge.middleware.TrustedProxyRealIPMiddleware',
     'judge.middleware.ShortCircuitMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -843,6 +844,11 @@ SOCIAL_AUTH_SLUGIFY_FUNCTION = 'judge.social_auth.slugify_username'
 SOCIAL_AUTH_PROTECTED_USER_FIELDS = ['first_name', 'last_name']
 
 IP_BASED_AUTHENTICATION_HEADER = 'REMOTE_ADDR'
+
+# IP/CIDR của reverse proxy tin cậy (vd nginx cùng máy: ('127.0.0.1', '::1')). Khi kết nối
+# đến từ các địa chỉ này, REMOTE_ADDR được thay bằng giá trị của header dưới đây. Rỗng = tắt.
+TRUSTED_PROXY_IPS = ()
+TRUSTED_PROXY_IP_HEADER = 'HTTP_X_REAL_IP'
 
 MOSS_API_KEY = None
 MOSS_HOST = 'moss.stanford.edu'

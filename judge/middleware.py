@@ -1,5 +1,6 @@
 import base64
 import hmac
+import ipaddress
 import re
 import struct
 from urllib.parse import quote
@@ -22,6 +23,42 @@ try:
     import uwsgi
 except ImportError:
     uwsgi = None
+
+
+class TrustedProxyRealIPMiddleware:
+    """
+    Đặt REMOTE_ADDR theo IP thật của người dùng do reverse proxy tin cậy (nginx) gửi.
+
+    Với `uwsgi --http-socket` đằng sau nginx, REMOTE_ADDR luôn là địa chỉ của nginx
+    (127.0.0.1), làm sai IP lưu cho người dùng, giới hạn đặt lại mật khẩu và xác thực theo IP.
+    nginx ghi đè (không nối) header `X-Real-IP` bằng IP thật nên header này đáng tin
+    KHI VÀ CHỈ KHI kết nối trực tiếp đến từ proxy: vì vậy chỉ đọc nó nếu REMOTE_ADDR
+    nằm trong settings.TRUSTED_PROXY_IPS. Mặc định rỗng = không làm gì (không đổi hành vi).
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+        self.trusted = tuple(ipaddress.ip_network(net, strict=False) for net in settings.TRUSTED_PROXY_IPS)
+        self.header = settings.TRUSTED_PROXY_IP_HEADER
+
+    @staticmethod
+    def _parse(value):
+        try:
+            address = ipaddress.ip_address((value or '').strip())
+        except ValueError:
+            return None
+        # ::ffff:127.0.0.1 -> 127.0.0.1
+        return getattr(address, 'ipv4_mapped', None) or address
+
+    def __call__(self, request):
+        if self.trusted:
+            peer = self._parse(request.META.get('REMOTE_ADDR'))
+            if peer is not None and any(peer in net for net in self.trusted):
+                real = self._parse(request.META.get(self.header))
+                if real is not None:
+                    request.META['PROXY_REMOTE_ADDR'] = request.META['REMOTE_ADDR']
+                    request.META['REMOTE_ADDR'] = str(real)
+        return self.get_response(request)
 
 
 class ShortCircuitMiddleware:
