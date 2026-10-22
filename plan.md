@@ -70,8 +70,8 @@ thinkalgo-oj/
 
 | # | Change (tên gợi ý) | Nội dung chính |
 |---|---|---|
-| 1 | `monorepo-compose-layout` | **Đã soạn spec** (`openspec/changes/`). Thêm image/service `web` (chưa nhận traffic), đưa cấu hình nginx vào repo, định tuyến chuyển dần có dự phòng, sửa IP thật. Chờ duyệt |
-| 2 | `api-foundation` | **Đã soạn spec**. DRF ghim `<3.18` (3.18 cần Django ≥5.2), drf-spectacular, API đọc đợt 1 (me, đề, bài nộp, xếp hạng, blog), quyền dùng lại phương thức của model. Chờ duyệt |
+| 1 | `monorepo-compose-layout` | **Đã làm trong repo** (image/service `web`, `deploy/nginx`, CD, middleware IP thật tắt mặc định); **chưa áp dụng lên server**: cần chụp `nginx -T`, truy vấn IP, `docker build`, thiết lập sudo/include (xem `tasks.md`) |
+| 2 | `api-foundation` | **Đã làm API đọc đợt 1** (me, đề, bài nộp, xếp hạng, blog; DRF ghim `<3.18`); so sánh với Jinja 0 khác biệt trên 7 vai trò; type TS + máy khách `serverApi()`. Còn: lọc bài nộp theo user/đề, đo truy vấn, kiểm tra schema trong CI |
 | 3 | `web-bootstrap-playful` (**đã làm**, xem `openspec/changes/web-bootstrap-playful/`) | Dựng Next.js 15, token từ `style.md`, layout (navbar, footer) giống bản Jinja, i18n (locale `vi` hiện dùng gettext của Django) |
 | 4 | Mỗi trang một change (bản vẽ đợt 1 ở `docs/design/web-pages.md`, chờ duyệt) | Thứ tự rủi ro thấp trước: blog → problem list/detail → ranking → submission list → contest → user/profile. Mỗi trang kèm bản vẽ và ảnh chụp đối chiếu |
 | 5 | `retire-jinja-templates` | Khi mọi trang đã chuyển: bỏ template Jinja, compressor, SCSS cũ. Giữ API và admin |
