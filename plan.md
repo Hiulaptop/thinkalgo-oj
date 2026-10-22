@@ -127,6 +127,8 @@ Lộ trình tổng thể sau giai đoạn UI:
 
 ## 8. Bước tiếp theo
 
+Kế hoạch chuyển **toàn bộ** trang ngoài admin: xem `docs/migration/page-migration.md` (khảo sát 254 route, phân loại, 12 luồng hạ tầng dùng chung, 6 giai đoạn, quyết định cần bạn đưa ra).
+
 Đã làm: `web-bootstrap-playful` (nền tảng web), soạn spec `monorepo-compose-layout` và `api-foundation`,
 vẽ bản phác các trang đợt 1 (`docs/design/web-pages.md`).
 
