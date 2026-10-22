@@ -1,12 +1,12 @@
 # Kế hoạch chuyển toàn bộ trang (ngoài admin) sang Next.js
 
-> Trạng thái: **kế hoạch chờ duyệt**, chưa phải spec. Mỗi giai đoạn và mỗi nhóm trang sẽ có change OpenSpec riêng, bản vẽ được duyệt rồi mới làm (`plan.md`, `CLAUDE.md`).
+> Trạng thái: **kế hoạch, đã chốt 4 quyết định (mục 7)**; chưa phải spec. Mỗi giai đoạn và mỗi nhóm trang sẽ có change OpenSpec riêng, bản vẽ được duyệt rồi mới làm (`plan.md`, `CLAUDE.md`).
 > Số liệu lấy từ `dmoj/urls.py`, `templates/`, `judge/views/`, `resources/` ngày 2026-10-22. Cú pháp/thư viện chưa tra tài liệu chính thức (Context7 bị chặn); mỗi change phải tra và ghi nguồn.
 > Liên quan: `plan.md` (chiến lược), `openspec/changes/monorepo-compose-layout` (định tuyến), `openspec/changes/api-foundation` (API đọc), `docs/design/web-pages.md` (bản vẽ đợt 1), `style.md`.
 
 ## 1. Mục tiêu và phạm vi
 
-- Chuyển **mọi trang người dùng thấy** (trừ `/admin/`) sang Next.js, từng nhóm một, có thể thử và hoàn tác từng trang.
+- Chuyển **mọi trang người dùng thấy** (trừ `/admin/`) sang Next.js, từng nhóm một, có thể thử và hoàn tác từng trang. **Không bỏ trang nào** (quyết định của chủ dự án).
 - **Giao diện mặc định sáng.** Đã thực hiện cho `web/`: mặc định sáng kể cả khi hệ điều hành tối; chỉ tối khi người dùng chọn (mục 8).
 - Django vẫn là nguồn sự thật cho dữ liệu, quyền, chấm bài và admin trong suốt kế hoạch này (không đổi DB, không đổi `bridged`).
 
@@ -46,7 +46,9 @@ Ngoài phạm vi: `/admin/` (Django admin), đổi DB sang Postgres, viết lạ
 
 **C. Trở thành API** (hiện là AJAX/HTML fragment): `widgets/*` (rejudge, trạng thái, preview Markdown, upload ảnh Martor), `judge-select2/*` và `widgets/select2/*` (JSON dạng Select2, có thể dùng nguyên giai đoạn đầu), `comments/*` (vote/sửa/lịch sử), `tasks/*` (trạng thái tác vụ Celery), `*/ajax`.
 
-**D. Bỏ**: `tasks/success|failure|progress` (demo), `500/` (thay bằng trang lỗi Next.js), `shorteners` nếu không dùng (cần bạn xác nhận), `newsletter` (chỉ có khi app được bật; cần xác nhận).
+**D. Không có trang nào bị bỏ.** Mọi trang người dùng thấy đều được chuyển, kể cả loại ít dùng: `shorteners/*` (5 trang: danh sách, tạo, chi tiết, sửa, xoá), `magazine`, `flatpages`, `stats`, `status`, `runtimes`, `license`, `misc_config`. Hai điểm cần lưu ý:
+- App `newsletter` **không được cài** (không có trong `INSTALLED_APPS` lẫn `requirements`; route chỉ được thêm khi app có mặt), nên 20 template `templates/newsletter/` là mã chết, không phải trang đang chạy. Không có gì để chuyển; sẽ xoá ở giai đoạn 5. Nếu bạn định bật newsletter, cần nói để đưa vào kế hoạch.
+- Ba route `tasks/success|failure|progress` là điểm thử cho tác vụ Celery, không phải trang cho người dùng; mặc định giữ nguyên ở Django (không chuyển, không xoá) trừ khi bạn muốn khác.
 
 ## 4. Phần dùng chung phải có trước (luồng hạ tầng)
 
@@ -57,10 +59,10 @@ Ngoài phạm vi: `/admin/` (Django admin), đổi DB sang Postgres, viết lạ
 | W1 | Triển khai và định tuyến | `monorepo-compose-layout`: image `web`, nginx trong repo, preview/live, dự phòng, IP thật | — |
 | W2 | API đọc | `api-foundation` (đợt 1) rồi mở rộng theo từng nhóm trang | W1 |
 | W3 | API ghi và biểu mẫu | Quy ước ghi: CSRF, lỗi theo từng trường, idempotency, tải lên tệp, throttle. Mô tả biểu mẫu Django thành schema (trường, nhãn, kiểm tra hợp lệ) để Next.js hiển thị đúng lỗi của server | W2 |
-| W4 | Xác thực | Đăng nhập/đăng xuất/đăng ký/đặt lại mật khẩu/2FA/OAuth dưới dạng luồng API + chuyển hướng; giữ session Django (cookie `sessionid`, `csrftoken`); xử lý `Set-Cookie` qua Next.js | W3 |
-| W5 | i18n | Chọn cách dịch (xem mục 7, câu 1); `vi` mặc định, `en` | W1 |
+| W4 | Xác thực | **Đã chốt** (mục 7.2): Next.js làm trang đăng nhập/đăng xuất/đăng ký/kích hoạt/đổi và đặt lại mật khẩu/2FA TOTP; Django giữ OAuth (chuyển hướng và callback) và các endpoint WebAuthn; giữ session Django (cookie `sessionid`, `csrftoken`); xử lý `Set-Cookie` qua Next.js | W3 |
+| W5 | i18n | **Đã chốt: dùng lại `.po` hiện có** (mục 7.1). `vi` mặc định, `en` | W1 |
 | W6 | Markdown và nội dung | Hiển thị HTML đã render từ server (đề, blog, bình luận, KaTeX/MathJax), trình soạn Markdown có xem trước (11 loại preview hiện có), tải ảnh lên, tìm người dùng (`@`) | W3 |
-| W7 | Trình soạn code | Chọn Monaco hoặc CodeMirror (kích thước bundle), mẫu theo ngôn ngữ, lưu bản nháp trong Zustand; thay Ace | W2 |
+| W7 | Trình soạn code | **Đã chốt: Monaco, tự host** (mục 7.3): ánh xạ ngôn ngữ OJ ↔ Monaco, mẫu theo ngôn ngữ, bản nháp trong Zustand, thay Ace; nền cho "chạy thử" ở giai đoạn 6 | W2 |
 | W8 | Cập nhật trực tiếp | Cổng TypeScript của `event.js` (142 dòng: WebSocket `/event/` + long-poll `/channels/`, lệnh `start-msg`, theo dõi kênh) dùng nguyên daemon `wsevent` | W1 |
 | W9 | Thành phần giao diện | DataTable (lọc, sắp xếp, phân trang không đếm), FilterBar, Select tìm kiếm (thay select2), Tabs, Dialog/Sheet, Toast, Pagination, biểu đồ (thống kê, rating), form field | `style.md` |
 | W10 | Đồng bộ giao diện sáng/tối | Mặc định sáng; đọc/ghi cùng cookie/hồ sơ với Django (mục 8) | W4 |
@@ -82,7 +84,7 @@ Mỗi nhóm trang đi qua cùng một quy trình (từ `monorepo-compose-layout`
 | Bài nộp | `/submissions/`, `/submission/<id>`, `/problem/<mã>/submissions/`, `/user/<tên>/submissions/` | L | Cập nhật trực tiếp (W8), quyền xem mã nguồn |
 | Xếp hạng | `/users/`, `/contributors/` | S | |
 | Tag | `/tags`, `/tag/<tag>` | S | |
-| Trạng thái, runtime, license | `/status/`, `/runtimes/`, `/license/<key>` | S | |
+| Trạng thái, runtime, license, magazine, flatpages | `/status/`, `/runtimes/`, `/license/<key>`, `/magazine/`, trang flatpage | S | Phần lớn đọc đơn giản; flatpages cần xác định đường dẫn thật đang dùng |
 | Hồ sơ | `/user/<tên>`, `/user/<tên>/solved/` | M | Biểu đồ rating/điểm |
 
 ### Giai đoạn 2: tương tác của người dùng đăng nhập
@@ -117,12 +119,23 @@ Mỗi nhóm trang đi qua cùng một quy trình (từ `monorepo-compose-layout`
 | Tổ chức (34 route) | XL | Danh sách/trang chủ (M), thành viên và yêu cầu (L), tag/hạn mức/sử dụng (M), tạo đề/kỳ thi/bài viết trong tổ chức (tái dùng trang chung) |
 | Ticket: tạo, trạng thái, ghi chú | M | |
 | `/misc_config/` | S | Trang cấu hình của nhân viên; làm cuối |
+| Rút gọn liên kết (`/shorteners/`, tạo, chi tiết, sửa, xoá) | S | 5 trang, biểu mẫu đơn giản; tên miền rút gọn riêng vẫn do Django chuyển hướng |
+| Thống kê (`/stats/data/all/` và trang dùng) | M | Biểu đồ phía client |
 
 ### Giai đoạn 5: dọn dẹp
 - Gỡ trang Jinja, django-compressor, SCSS cũ, select2 và endpoint dư; bỏ `web_with_fallback`.
-- Trang lỗi 404/500 trọn bộ, `flatpages` (cần xác nhận còn dùng), `magazine`, `stats`.
+- Trang lỗi 404/500 trọn bộ; xoá mã chết (`templates/newsletter/`, template Jinja đã thay).
 - Chuyển hướng URL cũ nếu có đổi.
 - Cập nhật `CI-CD.md`, Docker image backend (không còn build SCSS/compress).
+
+### Giai đoạn 6: chạy thử code trực tiếp (kiểu LeetCode)
+
+Đây là **tính năng mới**, không phải chuyển trang: người dùng gõ code, nhập dữ liệu, bấm "Chạy" và thấy kết quả ngay mà không nộp bài. Monaco được chọn để chuẩn bị cho việc này. Hiện chưa có hỗ trợ ở hệ thống (DMOJ chỉ có nộp bài chấm theo bộ test). Cần một change riêng với thiết kế và có thể cần sửa cả `thinkcode-judge-server` (repo khác). Các điểm phải giải quyết:
+- Giao thức giữa `bridged` và judge cho một lần chạy tạm với input tuỳ ý (không lưu thành bài nộp, hoặc lưu loại riêng, không tính điểm).
+- **Công suất**: production chỉ có 1 judge worker (`CI-CD.md`); chạy thử làm tăng tải, cần hàng đợi/ưu tiên tách khỏi bài nộp chấm điểm, giới hạn tần suất theo người dùng/IP, giới hạn thời gian/bộ nhớ/độ dài xuất.
+- An toàn và lạm dụng: cùng sandbox của judge, chặn spam, không lộ test chấm điểm.
+- API: `POST` tạo lượt chạy, nhận kết quả qua kênh sự kiện `wsevent` (W8).
+- Giao diện: khung input/output cạnh Monaco, trạng thái đang chạy/lỗi biên dịch/hết giờ, chia sẻ với trang nộp bài.
 
 ## 6. Mỗi trang xong khi nào (tiêu chí hoàn thành)
 
@@ -134,16 +147,37 @@ Mỗi nhóm trang đi qua cùng một quy trình (từ `monorepo-compose-layout`
 6. **Vận hành**: đã chạy ở `preview` đủ lâu với người dùng thật; theo dõi log nginx (`us=`) không có lần rơi về Django bất thường; hoàn tác thử thành công.
 7. **SEO**: tiêu đề, mô tả, canonical đúng; URL không đổi.
 
-## 7. Quyết định cần bạn đưa ra
+## 7. Quyết định
 
-1. **i18n**: (a) dùng lại `.po` hiện có bằng cách xuất sang JSON (một nguồn dịch cho cả hai phía), (b) chuyển hẳn sang thư viện i18n của Next.js (ví dụ next-intl, phải nhập lại bản dịch), (c) dịch ở Django, API trả chuỗi đã dịch theo `Accept-Language`. Khuyến nghị (a) trong giai đoạn chuyển tiếp.
-2. **Xác thực**: render trang đăng nhập/đăng ký bằng Next.js (cần xử lý `Set-Cookie`, CSRF, redirect OAuth, WebAuthn) hay giữ trang Django cho tới giai đoạn cuối? Khuyến nghị giữ Django cho OAuth/WebAuthn, làm lại phần còn lại.
-3. **Trình soạn code**: Monaco (mạnh, nặng) hay CodeMirror (nhẹ). Khuyến nghị CodeMirror vì VPS 2 GB và băng thông người dùng.
-4. **Trình soạn Markdown**: viết mới hay tái dùng thư viện; cần giữ 11 loại xem trước và tải ảnh (`martor`).
-5. **Phạm vi tính năng**: có những trang ít dùng nào có thể **bỏ** thay vì chuyển (ví dụ `shorteners`, `newsletter`, `magazine`, `flatpages`, một số trang tổ chức)? Dữ liệu từ log nginx (đếm theo route) giúp quyết định; lệnh gợi ý: đếm `$request_uri` đã chuẩn hoá theo nhóm trong 30 ngày.
-6. **Thứ tự ưu tiên**: giữ thứ tự theo rủi ro (đọc → tương tác → kỳ thi → soạn thảo → tổ chức), hay ưu tiên theo lưu lượng thật?
-7. **Trang chủ**: giữ bố cục hiện tại hay thiết kế lại (cần bản vẽ riêng).
-8. **Thời điểm gỡ Jinja**: sau từng nhóm hay một lần ở giai đoạn 5? (giữ lâu hơn thì tốn chi phí duy trì hai giao diện).
+### Đã chốt (2026-10-22)
+
+**7.1 i18n: dùng lại `.po` hiện có.** Một nguồn dịch cho cả hai phía (`locale/vi`, `locale/en`, ~2 150 chuỗi).
+- Cách làm: bước build (CI) xuất `django.po` thành JSON theo ngôn ngữ cho `web/`. Không dịch lại bằng tay.
+- Lưu ý kỹ thuật cần giải quyết trong change i18n: chuỗi Django dùng `%(tên)s`, `%s`, `ngettext` (số nhiều), `{% blocktrans %}`; các thư viện ICU của Next.js dùng `{tên}`, nên chuyển đổi tự động có thể sai. Đề xuất hàm `t()` nhỏ trong `web/` đọc trực tiếp danh mục đã xuất, hỗ trợ đúng placeholder và số nhiều của Django, thay vì ép sang ICU.
+- Dữ liệu từ server (thông báo lỗi, tên model) dịch ở Django theo ngôn ngữ của yêu cầu (`Accept-Language` hoặc cookie ngôn ngữ, `/i18n/setlang`). `statici18n` đã có sẵn nhưng chỉ chứa chuỗi của miền `djangojs`, không đủ cho các chuỗi trong template.
+
+**7.2 Xác thực.**
+- Next.js làm: đăng nhập, đăng xuất, đăng ký, kích hoạt, đổi mật khẩu, đặt lại mật khẩu, 2FA TOTP (bật/tắt/làm mới/mã dự phòng), token API, đổi giao diện.
+- Django giữ: OAuth (chuyển hướng tới nhà cung cấp và callback; trang lỗi `/social/error/` có thể chuyển về Next.js), các endpoint WebAuthn (`/2fa/webauthn/*`, Next.js gọi được).
+- Session vẫn là cookie `sessionid` của Django, cùng tên miền; thêm endpoint đăng nhập/đăng xuất dạng API (đặt cookie, kiểm tra CSRF) thuộc `W3/W4`. Phải xử lý chuyển hướng `next` và khoá kỳ thi sau khi đăng nhập.
+
+**7.3 Trình soạn code: Monaco, tự host, để chuẩn bị chạy thử trực tiếp.**
+
+Đã thử trong phiên (`monaco-editor` 0.57.0 + `@monaco-editor/react` 4.7.0, hỗ trợ React 19; Next.js 15.5.28 build `standalone`, Chromium thật):
+- Chạy được khi tự host tại `/monaco/vs/` (cấu hình `loader.config({ paths: { vs } })`), **không có request ra CDN nào**; hiện highlight C++, gõ tiếng Việt đúng, khởi tạo trong khoảng 1,7 giây trên máy cục bộ.
+- Mặc định `@monaco-editor/react` tải từ `cdn.jsdelivr.net`; phải tự host để không phụ thuộc CDN (sự cố, quyền riêng tư, CSP).
+- `next/dynamic` với `ssr: false` **không được phép trong Server Component** (Next 15) nên phải bọc trong Client Component.
+- Bản chép nguyên `min/vs` nặng 25 MB và trang tải khoảng 5,5 MB (chưa nén) vì kéo cả worker JSON/HTML/CSS/TypeScript không cần cho OJ. Cần cắt gọn: chỉ giữ lõi editor, `editor.worker`, các `basic-languages` mà OJ dùng (c/cpp, java, python, pascal, go, rust, kotlin, csharp, javascript...) và bỏ language service. Mục tiêu và đo lại thuộc change W7.
+- Phục vụ tĩnh ở đường dẫn có phiên bản (`/monaco/<phiên bản>/vs/`), `Cache-Control: public, max-age=31536000, immutable`; chỉ nạp khi vào trang cần soạn code (lazy), không nằm trong bundle chung.
+- Việc còn lại: ánh xạ `Language` của OJ sang id của Monaco (có thể có ngôn ngữ không được hỗ trợ cú pháp, dùng văn bản thuần), theme sáng/tối theo `style.md`, bản nháp theo từng đề lưu trong Zustand.
+
+**7.4 Không bỏ trang nào.** Mọi trang ngoài admin đều được chuyển (mục 3.D). Hệ quả: số lượng trang tăng thêm các trang nhỏ (rút gọn liên kết, magazine, flatpages, stats), và không có việc "cắt giảm" để giảm khối lượng.
+
+### Còn mở
+5. **Thứ tự ưu tiên**: giữ theo rủi ro (đọc → tương tác → kỳ thi → soạn thảo → tổ chức), hay theo lưu lượng thật (cần log nginx)? Vì không bỏ trang nào nên log chỉ dùng để xếp thứ tự.
+6. **Trang chủ**: giữ bố cục hiện tại hay thiết kế lại (cần bản vẽ riêng).
+7. **Thời điểm gỡ Jinja**: sau từng nhóm hay một lần ở giai đoạn 5.
+8. **Chạy thử trực tiếp (giai đoạn 6)**: mức ưu tiên và phạm vi (chỉ chạy với input mẫu hay input tuỳ ý), có sẵn sàng sửa `thinkcode-judge-server` không, có thêm judge worker không.
 
 ## 8. Giao diện mặc định sáng
 
@@ -169,7 +203,8 @@ Mỗi nhóm trang đi qua cùng một quy trình (từ `monorepo-compose-layout`
 
 ## 10. Bước tiếp theo
 
-1. Bạn duyệt kế hoạch này và trả lời mục 7 (nhất là i18n, xác thực, trình soạn code).
-2. Duyệt `monorepo-compose-layout` và `api-foundation` (phần nền cho giai đoạn 1).
-3. Tôi soạn change cho giai đoạn 1 từng nhóm (blog, đề bài, bài nộp, xếp hạng/tag/trạng thái/hồ sơ), mỗi nhóm kèm bản vẽ và ma trận quyền.
-4. Song song: thu thập số liệu lưu lượng theo route từ log nginx production để xếp thứ tự và loại bỏ trang ít dùng.
+1. Bạn duyệt kế hoạch và trả lời các câu hỏi còn mở (mục 7: 5–8).
+2. Duyệt `monorepo-compose-layout` và `api-foundation` (nền cho giai đoạn 1).
+3. Tôi soạn các change nền dùng chung đã chốt: i18n (`.po` → JSON, hàm `t()`), xác thực (API đăng nhập + trang), Monaco (tự host, cắt gọn, đo), API ghi và biểu mẫu.
+4. Tôi soạn change cho giai đoạn 1 từng nhóm (blog, đề bài, bài nộp, xếp hạng/tag/trạng thái/hồ sơ), mỗi nhóm kèm bản vẽ và ma trận quyền.
+5. Song song: thu thập số liệu lưu lượng theo route từ log nginx production để xếp thứ tự.

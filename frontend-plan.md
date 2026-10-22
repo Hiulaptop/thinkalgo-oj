@@ -142,7 +142,7 @@ Trang chủ, 404/500 làm cùng đợt đầu để khẳng định phong cách.
 ### 7.2 Component cần có (khung shadcn + biến thể Playful)
 Button, Input, Textarea, Select/Combobox (thay select2), Checkbox/Radio/Switch, Tabs, Card, Badge/VerdictBadge, Table/DataTable (lọc, sắp xếp, phân trang), Pagination, Dialog/Sheet, Dropdown/Popover, Tooltip, Toast, Skeleton, Avatar, Navbar + menu mobile, Footer, Markdown renderer (kèm KaTeX), khung trình soạn code, biểu đồ rating, trạng thái rỗng/lỗi có minh hoạ.
 
-Mục "trình soạn code" (Monaco hay CodeMirror) và "biểu đồ" (thư viện nào) cần quyết định riêng bằng change và tra tài liệu, vì ảnh hưởng dung lượng bundle.
+Trình soạn code: **đã chốt Monaco, tự host** (xem `docs/migration/page-migration.md` mục 7.3; đã thử chạy được, cần cắt gọn dung lượng). Thư viện biểu đồ cần quyết định riêng bằng change và tra tài liệu, vì ảnh hưởng dung lượng bundle.
 
 ## 8. Lộ trình
 
