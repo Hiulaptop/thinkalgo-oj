@@ -12,8 +12,9 @@
 #   - `${IMAGE_TAG}` pulled from GHCR -> `build: .` (builds the Dockerfile
 #     locally).
 #   - Host bind-mounts (/var/www/thinkcodeoj/...) -> named volumes.
-#   - nginx (native on the deploy server, not part of this repo) -> the
-#     `nginx` service below using nginx/dev.conf, a from-scratch stand-in.
+#   - nginx (native on the deploy server) -> the `nginx` service below, which
+#     reuses deploy/nginx (same routing as production) with dev upstreams.
+#   - `web` (Next.js) is built from ./web and reached only through nginx.
 #
 # Like production, source code is baked into the image, NOT bind-mounted --
 # editing templates/resources/etc requires a rebuild:
@@ -51,6 +52,8 @@ x-common: &common
     CELERY_RESULT_BACKEND: redis://redis:6379/0
     SITE_FULL_URL: http://localhost:8000
     DMOJ_CANONICAL: localhost:8000
+    # nginx dev (container khác) gửi X-Real-IP; tin nó khi kết nối đến từ mạng Docker.
+    TRUSTED_PROXY_IPS: 172.16.0.0/12,192.168.0.0/16,10.0.0.0/8
     EMAIL_BACKEND: django.core.mail.backends.console.EmailBackend
     # bridged binds 0.0.0.0 (container-local); site/celery dial back in via
     # the "bridged" service name instead, since there's no shared host
@@ -160,16 +163,35 @@ services:
     container_name: thinkcode-dev-wsevent
     command: node websocket/daemon.js
 
+  web:
+    # Frontend Next.js (web/). Build context là web/ (xem web/Dockerfile).
+    build: ./web
+    container_name: thinkcode-dev-web
+    restart: unless-stopped
+    environment:
+      # Trong container phải nghe mọi giao diện để nginx (container khác) gọi được;
+      # production (host network) nghe 127.0.0.1.
+      HOSTNAME: 0.0.0.0
+      PORT: "3000"
+      DJANGO_INTERNAL_URL: http://site:8000
+      DJANGO_HOST: localhost
+
   nginx:
+    # Dùng chung cấu hình với production (deploy/nginx), chỉ ghi đè upstream
+    # (tên service) và realip (không có Cloudflare).
     image: nginx:alpine
     depends_on:
       - site
+      - web
     ports:
       - "8000:80"
     volumes:
-      - ./nginx/dev.conf:/etc/nginx/conf.d/default.conf:ro
-      - dev-static:/site/static:ro
-      - dev-media:/media:ro
+      - ./nginx/dev/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./deploy/nginx:/var/www/thinkcodeoj/nginx:ro
+      - ./nginx/dev/upstreams.conf:/var/www/thinkcodeoj/nginx/upstreams.conf:ro
+      - ./nginx/dev/cloudflare-realip.conf:/var/www/thinkcodeoj/nginx/snippets/cloudflare-realip.conf:ro
+      - dev-static:/var/www/thinkcodeoj/static:ro
+      - dev-media:/var/www/thinkcodeoj/media:ro
 
 volumes:
   dev-db-data:

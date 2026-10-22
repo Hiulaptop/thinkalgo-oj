@@ -8,7 +8,7 @@
 // is copied to websocket/config.js at image build time (see Dockerfile).
 //
 // Matches thinkcode-deploy/docker-compose.production.yml's wsevent service
-// (network_mode: host, ports 15100/15101/15102) and nginx/vnoj.conf.docker's
+// (network_mode: host, ports 15100/15101/15102) and deploy/nginx's
 // /event/ and /channels/ proxy_pass targets.
 const config = {
   get_host: '127.0.0.1',

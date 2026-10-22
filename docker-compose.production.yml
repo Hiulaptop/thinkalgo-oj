@@ -1,4 +1,4 @@
-# ThinkCode OJ -- production docker-compose (site/bridged/celery/wsevent only)
+# ThinkCode OJ -- production docker-compose (site/bridged/celery/wsevent + web)
 #
 # GitHub Actions writes this file temporarily on the server for each deploy.
 # The production env file is also temporary and is supplied through
@@ -15,7 +15,7 @@
 #
 # nginx also stays native (untouched) and reverse-proxies to
 # 127.0.0.1:8000 (site) instead of the old unix socket
-# /tmp/dmoj-site.sock -- see nginx/vnoj.conf.docker in this repo for the
+# /tmp/dmoj-site.sock -- see deploy/nginx in this repo for the
 # updated config, and CI-CD.md for the one-time cutover steps.
 
 x-image: &image
@@ -72,7 +72,7 @@ services:
       # enumerating every context combination.)
       #
       # Bind-mounting the exact host directory that nginx serves /static
-      # from (see nginx/vnoj.conf.docker) as this container's STATIC_ROOT
+      # from (see deploy/nginx) as this container's STATIC_ROOT
       # means the site process now writes its runtime-generated
       # cache/{css,js}/ files directly into the same directory nginx reads
       # from -- so whatever hash ends up in the HTML a request generates is
@@ -122,3 +122,33 @@ services:
     <<: *common
     container_name: thinkcode-wsevent
     command: node websocket/daemon.js
+
+  # Frontend Next.js. Image riêng, tag theo hash cây web/ (WEB_IMAGE_TAG), deploy
+  # độc lập với backend. Nghe 127.0.0.1:3000 (host network, nginx native gọi vào);
+  # chỉ nhận request qua nginx. Không có env_file production: web không cần mật
+  # khẩu DB hay khoá R2.
+  web:
+    image: ${WEB_IMAGE_TAG:?WEB_IMAGE_TAG must be set, e.g. ghcr.io/hiulaptop/thinkalgo-oj-web:web-0123456789ab}
+    container_name: thinkcode-web
+    network_mode: host
+    restart: unless-stopped
+    environment:
+      PORT: "3000"
+      HOSTNAME: 127.0.0.1
+      NODE_OPTIONS: --max-old-space-size=256
+      DJANGO_INTERNAL_URL: http://127.0.0.1:8000
+      DJANGO_HOST: oj.thinkcode.vn
+    # VPS 2 GB chạy chung MariaDB, Redis, uwsgi, Celery: giới hạn cứng để một
+    # sự cố bộ nhớ của Node chỉ khởi động lại container này.
+    mem_limit: 384m
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/web-healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"

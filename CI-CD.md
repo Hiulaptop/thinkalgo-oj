@@ -307,3 +307,58 @@ Vi vay co downtime ngan trong luc bon service `site`, `bridged`, `celery`,
 
 Phase nay chua co rollback tu dong. Image tag theo commit cho phep rollback
 thu cong bang cach chay lai CD voi commit cu.
+
+---
+
+## Frontend Next.js (`web/`) và nginx trong repo
+
+Cập nhật 2026-10-22, theo change OpenSpec `monorepo-compose-layout` (`openspec/changes/monorepo-compose-layout/`).
+
+### Hai image, triển khai độc lập
+
+| Image | Tag | Khi nào đổi |
+|---|---|---|
+| `ghcr.io/<repo>` (backend Django) | `sha-<commit>` | mỗi commit, như trước |
+| `ghcr.io/<repo>-web` (Next.js) | `web-<hash cây web/>` | chỉ khi nội dung `web/` đổi |
+
+`cd.yml`:
+1. `build`: build image backend; tính tag web từ `git rev-parse HEAD:web`, **bỏ qua build nếu tag đã có** trong GHCR, nếu chưa thì build với context `web/` (xem `web/Dockerfile`).
+2. `deploy`: như trước nhưng chỉ dừng/tạo lại nhóm backend (`site bridged celery wsevent`); container `web` không bị đụng tới.
+3. `deploy-web`: sau backend. Kéo image web, `up -d --no-deps web`, chờ healthcheck (tối đa 2 phút). Thất bại thì **tự quay về image web trước** (hoặc gỡ web nếu chưa có bản trước) và job đỏ. Backend không bị ảnh hưởng, và các trang đã chuyển tự quay về Django nhờ nginx.
+4. `deploy-nginx`: chỉ chạy khi biến repo `NGINX_MANAGED=true` (mặc định **tắt**).
+
+Service `web` (`docker-compose.production.yml`): host network, nghe `127.0.0.1:3000`, `mem_limit: 384m`, `NODE_OPTIONS=--max-old-space-size=256`, healthcheck `/web-healthz`, **không** có `env_file` production. VPS 2 GB chạy chung MariaDB, Redis, uwsgi, Celery: theo dõi bộ nhớ sau khi bật.
+
+Rollback web thủ công: chạy lại workflow với commit cũ (image web của commit đó đã được giữ nguyên tag).
+
+### Cấu hình nginx (`deploy/nginx/`)
+
+Cấu hình nginx từng **không nằm trong repo**; giờ `deploy/nginx/` là nguồn sự thật (xem `deploy/nginx/README.md`). Khi `NGINX_MANAGED=true`, job `deploy-nginx`:
+1. sinh `snippets/cloudflare-realip.conf` từ danh sách IP chính thức của Cloudflare (`scripts/gen_cloudflare_realip.sh`; lỗi tải/rỗng/không phải CIDR thì dừng, không sinh danh sách sai);
+2. chép gói cấu hình lên server và chạy `scripts/deploy_nginx_config.sh`: hoán đổi thư mục, `nginx -t`, reload, kiểm tra site trả lời **liên tục 5 lần** (reload là bất đồng bộ nên một lần đạt chưa đủ), và **tự hoàn tác** nếu bất kỳ bước nào lỗi. Giữ 3 bản sao lưu gần nhất (`/var/www/thinkcodeoj/nginx.prev.*`).
+
+**Thiết lập một lần trên server trước khi bật `NGINX_MANAGED`** (cần root, KHÔNG làm tự động):
+```bash
+# 1. Chụp cấu hình hiện tại và đối chiếu với deploy/nginx (bắt buộc, xem task 1.1)
+sudo nginx -T > /tmp/nginx-baseline.conf
+
+# 2. Thư mục cấu hình do user deploy ghi được
+sudo mkdir -p /var/www/thinkcodeoj/nginx && sudo chown opencode:opencode /var/www/thinkcodeoj/nginx
+
+# 3. nginx chính include cấu hình trong repo (thay vì conf.d/vnoj.conf cũ, sau khi đã đối chiếu)
+#    include /var/www/thinkcodeoj/nginx/oj.conf;
+
+# 4. Quyền sudo HẸP: đúng hai lệnh, không hơn (visudo -f /etc/sudoers.d/thinkcode-nginx)
+#    opencode ALL=(root) NOPASSWD: /usr/sbin/nginx -t, /usr/bin/systemctl reload nginx
+```
+Nếu không muốn cấp sudo: để `NGINX_MANAGED` tắt và áp dụng thủ công bằng `scripts/deploy_nginx_config.sh <staging>` khi đổi cấu hình.
+
+Chuyển một trang sang Next.js = thêm một khối vào `deploy/nginx/routes/next-owned.conf` (trạng thái `preview` bằng cookie `web_preview=1`, rồi `live`); hoàn tác = gỡ khối. Chi tiết trong `deploy/nginx/README.md`.
+
+### IP thật của người dùng
+
+Với `uwsgi --http-socket` đằng sau nginx, Django thấy `REMOTE_ADDR=127.0.0.1` với mọi người (đã thử). Nginx gửi IP thật trong `X-Real-IP` (đã ghi đè header do client gửi); Django chỉ dùng nó khi kết nối đến từ proxy tin cậy: đặt biến môi trường `TRUSTED_PROXY_IPS=127.0.0.1,::1` trong `PRODUCTION_ENV` để bật `judge.middleware.TrustedProxyRealIPMiddleware`. **Mặc định tắt** (không đổi hành vi). Xác nhận vấn đề trên production trước bằng:
+```sql
+SELECT ip, COUNT(*) AS n FROM judge_profile WHERE ip IS NOT NULL GROUP BY ip ORDER BY n DESC LIMIT 5;
+```
+Nếu `127.0.0.1` chiếm đa số thì bật biến trên.

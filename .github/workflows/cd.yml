@@ -23,6 +23,7 @@ jobs:
       packages: write
     outputs:
       image: ${{ steps.meta.outputs.image }}
+      web_image: ${{ steps.web_meta.outputs.web_image }}
     steps:
       - name: Checkout tested commit
         uses: actions/checkout@v4
@@ -53,6 +54,34 @@ jobs:
             ${{ steps.meta.outputs.latest }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      # Image web gắn tag theo hash cây web/: chỉ đổi khi web/ đổi, nên commit chỉ
+      # sửa backend không build lại và không triển khai lại frontend.
+      - name: Set web image tag
+        id: web_meta
+        shell: bash
+        run: |
+          repo="${GITHUB_REPOSITORY,,}"
+          tree="$(git rev-parse HEAD:web)"
+          echo "web_image=${REGISTRY}/${repo}-web:web-${tree:0:12}" >> "$GITHUB_OUTPUT"
+      - name: Check whether web image already exists
+        id: web_exists
+        shell: bash
+        run: |
+          if docker buildx imagetools inspect '${{ steps.web_meta.outputs.web_image }}' >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Build and push web image
+        if: steps.web_exists.outputs.exists != 'true'
+        uses: docker/build-push-action@v6
+        with:
+          # Build context phải là web/ (xem web/Dockerfile).
+          context: web
+          push: true
+          tags: ${{ steps.web_meta.outputs.web_image }}
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,mode=max,scope=web
 
   deploy:
     needs: build
@@ -136,6 +165,9 @@ jobs:
 
           export IMAGE_TAG="$1"
           export DEPLOY_ENV_FILE="$ENV_FILE"
+          # Compose yêu cầu WEB_IMAGE_TAG để đọc file; deploy backend không đụng tới
+          # service web (xem job deploy-web). Dùng image web đang chạy, nếu chưa có thì tag giả.
+          export WEB_IMAGE_TAG="$(docker inspect -f '{{.Config.Image}}' thinkcode-web 2>/dev/null || echo unused/web:none)"
 
           docker pull "$IMAGE_TAG"
           docker run --rm --network host --env-file "$ENV_FILE" \
@@ -161,13 +193,143 @@ jobs:
           for name in thinkcode-site thinkcode-bridged thinkcode-celery thinkcode-wsevent; do
             docker rm -f "$name" >/dev/null 2>&1 || true
           done
-          "${COMPOSE[@]}" down --remove-orphans
-          "${COMPOSE[@]}" up -d --remove-orphans
+          # Chỉ dừng/tạo lại nhóm backend; container web giữ nguyên (deploy-web lo).
+          BACKEND_SERVICES=(site bridged celery wsevent)
+          "${COMPOSE[@]}" rm -sf "${BACKEND_SERVICES[@]}"
+          "${COMPOSE[@]}" up -d --no-deps --remove-orphans "${BACKEND_SERVICES[@]}"
           "${COMPOSE[@]}" ps
           REMOTE_SCRIPT
           } | ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes \
             '${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}' \
             "read -r token; read -r ENV_B64; read -r COMPOSE_B64; printf '%s\\n' \"\$token\" | docker login ghcr.io -u '${{ github.actor }}' --password-stdin; export ENV_B64 COMPOSE_B64; bash -se -- '$IMAGE'"
+      - name: Remove SSH key
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
+
+  # Frontend Next.js: triển khai riêng sau backend. Lỗi ở đây KHÔNG làm hỏng backend:
+  # trang đã chuyển tự quay về Django nhờ nginx (xem deploy/nginx), nhưng job đỏ để có
+  # người xem. Tự hoàn tác về image web trước nếu kiểm tra sống thất bại.
+  deploy-web:
+    needs: [build, deploy]
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Checkout deployment config
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      - name: Install SSH key
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H '${{ secrets.DEPLOY_HOST }}' >> ~/.ssh/known_hosts
+      - name: Deploy web image
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          WEB_IMAGE: ${{ needs.build.outputs.web_image }}
+        run: |
+          COMPOSE_B64="$(base64 -w0 docker-compose.production.yml)"
+          {
+            printf '%s\n' "$GHCR_TOKEN"
+            printf '%s\n' "$COMPOSE_B64"
+            cat <<'REMOTE_SCRIPT'
+          set -euo pipefail
+
+          DEPLOY_DIR=/tmp/thinkcode-deploy-web
+          COMPOSE_FILE="$DEPLOY_DIR/docker-compose.production.yml"
+          cleanup() { rm -rf "$DEPLOY_DIR"; }
+          mkdir -p "$DEPLOY_DIR"
+          chmod 700 "$DEPLOY_DIR"
+          trap cleanup EXIT
+          printf '%s' "$COMPOSE_B64" | base64 -d > "$COMPOSE_FILE"
+          : > "$DEPLOY_DIR/empty.env"
+
+          new_image="$1"
+          prev_image="$(docker inspect -f '{{.Config.Image}}' thinkcode-web 2>/dev/null || true)"
+
+          # Compose đọc cả file nên cần các biến của backend; chỉ service web được chạm tới.
+          export IMAGE_TAG="$(docker inspect -f '{{.Config.Image}}' thinkcode-site 2>/dev/null || echo unused/backend:none)"
+          export DEPLOY_ENV_FILE="$DEPLOY_DIR/empty.env"
+
+          up_web() {
+            WEB_IMAGE_TAG="$1" docker compose -p thinkcode -f "$COMPOSE_FILE" --env-file "$DEPLOY_ENV_FILE" \
+              up -d --no-deps web
+          }
+          healthy() {
+            for _ in $(seq 1 24); do
+              st="$(docker inspect -f '{{.State.Health.Status}}' thinkcode-web 2>/dev/null || echo none)"
+              [ "$st" = healthy ] && return 0
+              sleep 5
+            done
+            return 1
+          }
+
+          docker pull "$new_image"
+          up_web "$new_image"
+          if healthy; then
+            echo "web đã chạy: $new_image"
+            exit 0
+          fi
+
+          echo "web không qua kiểm tra sống" >&2
+          docker logs --tail 50 thinkcode-web >&2 || true
+          if [ -n "$prev_image" ] && [ "$prev_image" != "$new_image" ]; then
+            echo "hoàn tác về $prev_image" >&2
+            up_web "$prev_image" || true
+          else
+            docker compose -p thinkcode -f "$COMPOSE_FILE" --env-file "$DEPLOY_ENV_FILE" rm -sf web || true
+          fi
+          exit 1
+          REMOTE_SCRIPT
+          } | ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes \
+            '${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}' \
+            "read -r token; read -r COMPOSE_B64; printf '%s\\n' \"\$token\" | docker login ghcr.io -u '${{ github.actor }}' --password-stdin; export COMPOSE_B64; bash -se -- '$WEB_IMAGE'"
+      - name: Remove SSH key
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
+
+  # Cấu hình nginx (deploy/nginx) được quản lý bởi CD CHỈ KHI bật biến repo
+  # NGINX_MANAGED=true. Mặc định tắt để không đổi gì trên production trước khi:
+  #   - đối chiếu `nginx -T` thật với deploy/nginx (task 1.1 của change monorepo-compose-layout),
+  #   - thiết lập một lần trên server: dòng include trong nginx chính và quyền sudo hẹp cho
+  #     `nginx -t` và `systemctl reload nginx` của user deploy.
+  deploy-nginx:
+    needs: [deploy, deploy-web]
+    if: ${{ vars.NGINX_MANAGED == 'true' }}
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout deployment config
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      - name: Generate nginx config bundle
+        run: |
+          cp -r deploy/nginx /tmp/nginx-staging
+          scripts/gen_cloudflare_realip.sh /tmp/nginx-staging/snippets/cloudflare-realip.conf
+          tar -C /tmp/nginx-staging -czf /tmp/nginx-config.tgz .
+      - name: Install SSH key
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H '${{ secrets.DEPLOY_HOST }}' >> ~/.ssh/known_hosts
+      - name: Apply nginx config
+        run: |
+          {
+            base64 -w0 /tmp/nginx-config.tgz; printf '\n'
+            base64 -w0 scripts/deploy_nginx_config.sh; printf '\n'
+          } | ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes \
+            '${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}' \
+            'set -euo pipefail; read -r BUNDLE_B64; read -r SCRIPT_B64; d="$(mktemp -d)"; trap "rm -rf $d" EXIT; mkdir "$d/staging"; printf "%s" "$BUNDLE_B64" | base64 -d | tar -xz -C "$d/staging"; printf "%s" "$SCRIPT_B64" | base64 -d > "$d/deploy_nginx_config.sh"; bash "$d/deploy_nginx_config.sh" "$d/staging"'
       - name: Remove SSH key
         if: always()
         run: rm -f ~/.ssh/deploy_key
