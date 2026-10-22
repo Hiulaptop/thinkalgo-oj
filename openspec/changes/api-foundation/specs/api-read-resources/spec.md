@@ -72,5 +72,5 @@ API SHALL trả danh sách và chi tiết bài viết blog theo cùng quy tắc 
 Với cùng người dùng và cùng điều kiện lọc, nội dung và thứ tự của API SHALL trùng với trang Jinja tương ứng.
 
 #### Scenario: So sánh song song
-- **WHEN** so sánh danh sách đề của API và trang `/problems` cho cùng người dùng, cùng bộ lọc
+- **WHEN** so sánh danh sách đề của API và trang `/problems/` cho cùng người dùng, cùng bộ lọc
 - **THEN** cùng tập đề theo cùng thứ tự

@@ -14,7 +14,7 @@ import { useUiStore } from "@/components/providers/ui-store-provider";
  * nên liên kết tới đó dùng <a> thường để tải đầy đủ trang, không dùng <Link>.
  */
 const NAV_ITEMS = [
-  { href: "/problems", label: "Đề bài" },
+  { href: "/problems/", label: "Đề bài" },
   { href: "/submissions/", label: "Bài nộp" },
   { href: "/contests/", label: "Cuộc thi" },
   { href: "/users/", label: "Xếp hạng" },

@@ -24,7 +24,7 @@
 - [ ] 4.1 Hoàn thiện `deploy/nginx/` đã đối chiếu baseline (task 1.1) và sinh `snippets/cloudflare-realip.conf` từ danh sách IP chính thức của Cloudflare lúc deploy; xác nhận bằng `nginx -t` trên bản nginx đúng phiên bản production **(ĐÃ VIẾT `deploy/nginx` và `scripts/gen_cloudflare_realip.sh`; `nginx -t` đạt trên 1.24 Ubuntu; CHƯA đối chiếu với `nginx -T` production (task 1.1) và CHƯA thử tải danh sách IP Cloudflare thật (proxy phiên chặn))**
 - [x] 4.2 Viết bước CD đồng bộ `deploy/nginx/` lên `/var/www/thinkcodeoj/nginx/`, chạy `nginx -t`, giữ bản cũ, hoàn tác khi lỗi, reload khi đạt; xác nhận bằng thử cố ý một cấu hình lỗi và thấy site không gián đoạn **(đã làm: kiểm thử bằng nginx 1.24 thật (hợp lệ, cú pháp sai, site hỏng sau reload, thiếu file, dọn sao lưu) và mô phỏng đường ống CD)**
 - [ ] 4.3 Thiết lập một lần trên server (sudo hẹp hoặc thủ công): dòng `include` trong nginx chính; xác nhận `nginx -T` thấy cấu hình mới
-- [ ] 4.4 Áp dụng cấu hình **không có route Next.js**; xác nhận mọi trang chính (`/`, `/problems`, `/submissions/`, `/contests/`, đăng nhập, `/admin/`, `/event/`) giống trước, và `/web-healthz` từ ngoài trả 403
+- [ ] 4.4 Áp dụng cấu hình **không có route Next.js**; xác nhận mọi trang chính (`/`, `/problems/`, `/submissions/`, `/contests/`, đăng nhập, `/admin/`, `/event/`) giống trước, và `/web-healthz` từ ngoài trả 403
 - [x] 4.5 Chạy lại bộ 36 kịch bản định tuyến trên cấu hình cuối và ghi kết quả vào `design.md`; xác nhận không kịch bản nào lỗi **(đã làm: 36 kịch bản đạt trên `deploy/nginx`)**
 
 ## 5. IP thật của người dùng

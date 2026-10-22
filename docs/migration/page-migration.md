@@ -80,7 +80,7 @@ Mỗi nhóm trang đi qua cùng một quy trình (từ `monorepo-compose-layout`
 | Nhóm | URL chuẩn | Kích cỡ | Ghi chú |
 |---|---|---|---|
 | Blog | `/blogs/`, `/post/<id>-<slug>` | M | Chi tiết cần render Markdown (W6); bình luận tạm dẫn Django |
-| Đề bài | `/problems`, `/problem/<mã>` (không gồm route con) | L | Lọc phức tạp, sắp xếp "đã giải", quyền theo kỳ thi/tổ chức |
+| Đề bài | `/problems/`, `/problem/<mã>` (không gồm route con) | L | Lọc phức tạp, sắp xếp "đã giải", quyền theo kỳ thi/tổ chức |
 | Bài nộp | `/submissions/`, `/submission/<id>`, `/problem/<mã>/submissions/`, `/user/<tên>/submissions/` | L | Cập nhật trực tiếp (W8), quyền xem mã nguồn |
 | Xếp hạng | `/users/`, `/contributors/` | S | |
 | Tag | `/tags`, `/tag/<tag>` | S | |

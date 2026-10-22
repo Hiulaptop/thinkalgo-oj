@@ -65,7 +65,7 @@ Theo cách làm việc của dự án, không tự viết test. Vì sai quyền 
 
 Bài nộp: chủ bài nộp, người có quyền xem mã nguồn, ban tổ chức kỳ thi, người dùng khác; bài nộp thường và bài nộp trong kỳ thi đang diễn ra/đã kết thúc; ẩn mã nguồn khi không có quyền.
 
-**Tương đương với Jinja**: với một bộ dữ liệu mẫu và từng vai trò, so sánh danh sách đề (cùng bộ lọc) giữa `/problems` và `/api/v1/problems` (cùng tập, cùng thứ tự), đo cả khi có `hide_solved`, `search`, `type`, sắp xếp theo từng khoá.
+**Tương đương với Jinja**: với một bộ dữ liệu mẫu và từng vai trò, so sánh danh sách đề (cùng bộ lọc) giữa `/problems/` và `/api/v1/problems` (cùng tập, cùng thứ tự), đo cả khi có `hide_solved`, `search`, `type`, sắp xếp theo từng khoá.
 
 **Bảo mật**: quét serializer đảm bảo không có trường nhạy cảm; `page_size` > 100 bị từ chối; không có truy vấn đếm toàn bảng trên danh sách bài nộp (kiểm tra bằng số truy vấn).
 

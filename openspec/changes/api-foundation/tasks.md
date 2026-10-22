@@ -9,7 +9,7 @@
 ## 2. Tài nguyên đọc (mỗi tài nguyên đi kèm kiểm tra quyền tương ứng)
 
 - [ ] 2.1 `me` (ẩn danh và đã đăng nhập); xác nhận bằng yêu cầu thủ công cả hai trạng thái
-- [ ] 2.2 Đề bài: danh sách (tìm kiếm, lọc, sắp xếp, ẩn đề đã giải) và chi tiết dựa trên `Problem.get_visible_problems`/`is_accessible_by`; xác nhận bằng so sánh song song với `/problems` cho các vai trò trong ma trận quyền
+- [ ] 2.2 Đề bài: danh sách (tìm kiếm, lọc, sắp xếp, ẩn đề đã giải) và chi tiết dựa trên `Problem.get_visible_problems`/`is_accessible_by`; xác nhận bằng so sánh song song với `/problems/` cho các vai trò trong ma trận quyền
 - [ ] 2.3 Bài nộp: danh sách và chi tiết (ẩn mã nguồn khi không có quyền, quy tắc kỳ thi); xác nhận bằng ma trận quyền bài nộp và kiểm tra không có `COUNT(*)` trên danh sách
 - [ ] 2.4 Bảng xếp hạng người dùng; xác nhận thứ tự trùng `/users/`
 - [ ] 2.5 Blog: danh sách và chi tiết; xác nhận bài chưa xuất bản trả 404 cho người không có quyền

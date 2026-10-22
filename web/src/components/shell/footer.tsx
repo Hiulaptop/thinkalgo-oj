@@ -1,5 +1,5 @@
 const FOOTER_LINKS = [
-  { href: "/problems", label: "Đề bài" },
+  { href: "/problems/", label: "Đề bài" },
   { href: "/contests/", label: "Cuộc thi" },
   { href: "/users/", label: "Xếp hạng" },
   { href: "/blogs/", label: "Blog" },

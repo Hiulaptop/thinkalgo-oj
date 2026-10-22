@@ -54,7 +54,7 @@ thinkalgo-oj/
 - Mỗi trang đã chuyển có 3 trạng thái: Django, `preview` (cookie `web_preview=1`), `live`.
   Next.js lỗi thì nginx tự thử lại trên Django (GET/HEAD); POST luôn về Django.
 - Khớp URL **chính xác** (`location =` hoặc regex có `$`), không dùng prefix rộng như `/problem/`
-  vì sẽ che các route con của Django. Dấu `/` cuối phải giống hệt Django (`/problems` nhưng `/submissions/`).
+  vì sẽ che các route con của Django. Dấu `/` cuối phải giống hệt Django (danh sách có `/`: `/problems/`, `/submissions/`; chi tiết không: `/problem/<mã>`).
 - `/_next/` và `/web-healthz` luôn tới Next.js; `/event/`, `/channels/`, `/static/`, `/media/` giữ nguyên.
 - Phát hiện cần xử lý: Django đang thấy IP người dùng là `127.0.0.1` (uwsgi `--http-socket` +
   `proxy_pass`); trang HTML tĩnh của Next.js mặc định `s-maxage=31536000`.

@@ -9,7 +9,7 @@ Xem `proposal.md` cho lý do. Hiện trạng đọc từ repo (CI-CD.md, `cd.yml
 - Django nghe `127.0.0.1:8000` bằng `uwsgi --http-socket`; `ALLOWED_HOSTS` chỉ có `oj.thinkcode.vn` nên mọi request tới Django phải mang đúng `Host`.
 - `wsevent`: 15100 (client WebSocket), 15101 (Django POST sự kiện, nội bộ), 15102 (long-poll `/channels/`, timeout 29 s). Judge nói chuyện với `bridged` qua TCP 9999, không qua nginx.
 - Tệp tĩnh: nginx đọc `/var/www/thinkcodeoj/static` (bind-mount ghi được vào `site` vì django-compressor chạy online, xem CI-CD.md §3.4), `/var/www/thinkcodeoj/media`, `static-passthrough/` (`502.html`, `robots.txt`), `icons/`.
-- Django có 90 mẫu URL cấp đầu; dạng dấu `/` **không thống nhất** (`/problems` nhưng `/submissions/`, `/contests/`, `/blogs/`, `/problem/<mã>`).
+- Django có 90 mẫu URL cấp đầu; dạng dấu `/` khác nhau giữa danh sách và chi tiết. Quy tắc dấu `/` cuối ở Django (đã kiểm bằng request thật): **trang danh sách có `/` cuối** (`/problems/`, `/submissions/`, `/users/`, `/blogs/`, `/contests/`), **trang chi tiết thì không** (`/problem/<mã>`, `/user/<tên>`, `/contest/<key>`); dạng còn lại Django tự 301 sang dạng chuẩn.
 - Cloudflare đang có Redirect Rule cho `/martor/`, `/pdf/`, `/static-upload/` sang `media.oj.thinkcode.vn`.
 
 ### Điều đã kiểm chứng và điều chưa
@@ -59,7 +59,7 @@ Xem `proposal.md` cho lý do. Hiện trạng đọc từ repo (CI-CD.md, `cd.yml
 
 6. **Định tuyến ba trạng thái bằng hai `map` và một upstream có dự phòng.** `owner_live` (GET/HEAD → `web_with_fallback`, còn lại → Django) và `owner_preview` (thêm điều kiện cookie `web_preview=1`). `web_with_fallback` = Next.js + Django làm `backup`; `proxy_next_upstream error timeout http_500 http_502 http_503 http_504`. nginx mặc định không thử lại phương thức không idempotent nên POST không bao giờ bị gửi lặp. Thay thế đã loại: `error_page ... = @fallback` (POST có thể bị chạy lặp khi Django 500) và `if ($request_method)` trong location.
 
-7. **Khớp URL chính xác, không dùng prefix rộng.** Mỗi trang là `location = <URL chuẩn của Django>` hoặc regex có neo `$`. Bảng chủ sở hữu ở "Bảng route" bên dưới là nguồn sự thật. Dấu `/` cuối: nginx tự 301 `/x` → `/x/` cho location có `/` cuối (đúng như `APPEND_SLASH` của Django); với route Django không có `/` cuối (`/problems`), dạng `/problems/` rơi về Django. Next.js đặt `skipTrailingSlashRedirect: true` để **không bao giờ** tự đổi dấu `/` ngược với Django (nếu không sẽ vòng lặp chuyển hướng giữa hai bên).
+7. **Khớp URL chính xác, không dùng prefix rộng.** Mỗi trang là `location = <URL chuẩn của Django>` hoặc regex có neo `$`. Bảng chủ sở hữu ở "Bảng route" bên dưới là nguồn sự thật. Dấu `/` cuối: nginx tự 301 `/x` → `/x/` cho location có `/` cuối (đúng như `APPEND_SLASH` của Django); với route chi tiết không có `/` cuối (`/problem/<mã>`), dạng `/problem/<mã>/` rơi về Django (Django 301 về dạng không `/`). Next.js đặt `skipTrailingSlashRedirect: true` để **không bao giờ** tự đổi dấu `/` ngược với Django (nếu không sẽ vòng lặp chuyển hướng giữa hai bên).
 
 8. **Cache HTML do Next.js tự đặt** (`headers()` → `private, no-cache`), nginx không đụng vào `Cache-Control`. Vì web_with_fallback có thể trả trang Django, nếu nginx ghi đè `Cache-Control` sẽ làm mất chính sách của Django.
 
@@ -76,7 +76,7 @@ URL chuẩn lấy từ `dmoj/urls.py`. Cột "Matcher" là dạng nginx dùng kh
 | Nhóm | URL chuẩn của Django | Dự kiến | Matcher khi chuyển |
 |---|---|---|---|
 | Blog | `/blogs/`, `/post/<id>-<slug>` | Next.js (đợt 1) | `= /blogs/`, `~ ^/post/\d+-[^/]+$` |
-| Đề bài | `/problems`, `/problem/<mã>` | Next.js (đợt 1) | `= /problems`, `~ ^/problem/[^/]+$` |
+| Đề bài | `/problems/`, `/problem/<mã>` | Next.js (đợt 1) | `= /problems/`, `~ ^/problem/[^/]+$` |
 | Bài nộp | `/submissions/`, `/submission/<id>` | Next.js (đợt 2) | `= /submissions/`, `~ ^/submission/\d+$` |
 | Xếp hạng | `/users/` | Next.js (đợt 2) | `= /users/` |
 | Hồ sơ | `/user/<tên>`, `/user` | Next.js (đợt 3) | `~ ^/user/[^/]+$` |

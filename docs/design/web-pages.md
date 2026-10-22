@@ -20,7 +20,7 @@ Ký hiệu: `[ ]` nút/ô bấm được, `( )` badge, `▓` thanh nhấn, `⟲`
 
 Trạng thái chung: **đang tải** (khung xương Sand có nhịp nhấp nháy nhẹ, tắt khi giảm chuyển động), **rỗng** (hình minh hoạ + một câu + nút), **lỗi** (khối viền Red 3px, icon + chữ + nút "Thử lại"), **404** (đã có).
 
-## 1. Danh sách đề (`/problems`)
+## 1. Danh sách đề (`/problems/`)
 
 ```
 Đề bài                                                     [ Đề ngẫu nhiên ]

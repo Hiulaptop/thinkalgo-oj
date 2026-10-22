@@ -10,7 +10,7 @@ const nextConfig: NextConfig = {
   // nginx đã nén (gzip); không nén thêm ở Node.
   compress: false,
   poweredByHeader: false,
-  // Django dùng /problems nhưng /submissions/ (dấu "/" cuối không thống nhất).
+  // Django: danh sách có "/" cuối (/problems/), chi tiết không (/problem/<mã>); tự 301 giữa hai dạng.
   // Next.js không được tự đổi dấu "/" kẻo vòng lặp chuyển hướng với APPEND_SLASH
   // của Django; nginx chỉ gửi đúng URL chuẩn của từng route tới đây.
   skipTrailingSlashRedirect: true,
