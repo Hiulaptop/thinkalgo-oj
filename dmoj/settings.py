@@ -504,6 +504,8 @@ INSTALLED_APPS += (
     'impersonate',
     'django_jinja',
     'martor',
+    'rest_framework',
+    'drf_spectacular',
     'adminsortable2',
     'django_cleanup.apps.CleanupConfig',
 )
@@ -530,6 +532,30 @@ MIDDLEWARE = (
     'judge.social_auth.SocialAuthExceptionMiddleware',
     'django.contrib.redirects.middleware.RedirectFallbackMiddleware',
 )
+
+# API cho frontend Next.js (/api/v1/). Chi tiết: openspec/changes/api-foundation.
+REST_FRAMEWORK = {
+    # Danh tính lấy từ session Django (cùng tên miền) hoặc `Authorization: Bearer` do
+    # judge.middleware.APIMiddleware xử lý trước; DRF dùng request.user đã có.
+    'DEFAULT_AUTHENTICATION_CLASSES': ['rest_framework.authentication.SessionAuthentication'],
+    # Mặc định cho phép đọc ẩn danh; từng tài nguyên tự lọc theo request.user.
+    'DEFAULT_PERMISSION_CLASSES': ['rest_framework.permissions.AllowAny'],
+    'DEFAULT_RENDERER_CLASSES': ['rest_framework.renderers.JSONRenderer'],
+    'DEFAULT_PARSER_CLASSES': ['rest_framework.parsers.JSONParser'],
+    'DEFAULT_PAGINATION_CLASS': 'judge.api.v1.pagination.HasNextPagination',
+    'EXCEPTION_HANDLER': 'judge.api.v1.exceptions.api_exception_handler',
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'UNAUTHENTICATED_USER': 'django.contrib.auth.models.AnonymousUser',
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'ThinkAlgo OJ API',
+    'DESCRIPTION': 'API đọc cho frontend Next.js. Quyền truy cập giống trang web tương ứng.',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'COMPONENT_SPLIT_REQUEST': True,
+    'SCHEMA_PATH_PREFIX': r'/api/v1',
+}
 
 IMPERSONATE_REQUIRE_SUPERUSER = True
 IMPERSONATE_DISABLE_LOGGING = True

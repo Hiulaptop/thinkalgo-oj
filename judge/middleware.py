@@ -10,7 +10,7 @@ from django.contrib import auth
 from django.contrib.auth.models import User
 from django.contrib.sites.shortcuts import get_current_site
 from django.core.cache import cache
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.urls import Resolver404, resolve, reverse
 from django.utils.encoding import force_bytes
@@ -61,6 +61,10 @@ class TrustedProxyRealIPMiddleware:
         return self.get_response(request)
 
 
+# API cho frontend trả JSON thay vì chuyển hướng HTML khi cần 2FA/đổi mật khẩu.
+API_V1_PREFIX = '/api/v1/'
+
+
 class ShortCircuitMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
@@ -98,12 +102,18 @@ class DMOJLoginMiddleware(object):
             if (has_2fa and not request.session.get('2fa_passed', False) and
                     request.path not in (login_2fa_path, logout_path, webauthn_path) and
                     not request.path.startswith(settings.STATIC_URL)):
+                if request.path.startswith(API_V1_PREFIX):
+                    return JsonResponse({'code': 'two_factor_required',
+                                         'detail': 'Two-factor authentication required.'}, status=403)
                 return HttpResponseRedirect(login_2fa_path + '?next=' + quote(request.get_full_path()))
             elif (request.session.get('password_pwned', False) and
                     request.path not in (change_password_path, change_password_done_path,
                                          login_2fa_path, logout_path) and
                     not request.path.startswith(settings.STATIC_URL) and
                     not request.official_contest_mode):
+                if request.path.startswith(API_V1_PREFIX):
+                    return JsonResponse({'code': 'password_change_required', 'detail': 'Password change required.'},
+                                        status=403)
                 return HttpResponseRedirect(change_password_path + '?next=' + quote(request.get_full_path()))
         else:
             request.profile = None

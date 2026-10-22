@@ -43,5 +43,8 @@ markdown2 @ git+https://github.com/VNOI-Admin/python-markdown2.git
 discord-webhook
 django-admin-sortable2
 icalendar
+# API cho frontend. DRF 3.18+ yêu cầu Django >= 5.2, repo đang ghim Django < 5.
+djangorestframework>=3.16,<3.18
+drf-spectacular>=0.28
 # This is a celery dependency whose latest major version is breaking everything.
 importlib-metadata<5
