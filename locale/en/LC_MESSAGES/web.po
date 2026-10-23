@@ -1,0 +1,58 @@
+# Chuỗi riêng của giao diện Next.js (web/). Không được makemessages quản lý.
+# Chuỗi dùng chung với Django nằm trong django.po. Khi trùng khoá, file này thắng.
+msgid ""
+msgstr ""
+"Project-Id-Version: thinkalgo-web\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+
+msgid "Skip navigation"
+msgstr ""
+
+msgid "Main navigation"
+msgstr ""
+
+msgid "Problems"
+msgstr ""
+
+msgid "Submissions"
+msgstr ""
+
+msgid "Contests"
+msgstr ""
+
+msgid "Ranking"
+msgstr ""
+
+msgid "Blog"
+msgstr ""
+
+msgid "Log in"
+msgstr ""
+
+msgid "Open menu"
+msgstr ""
+
+msgid "Close menu"
+msgstr ""
+
+msgid "Toggle light/dark mode"
+msgstr ""
+
+msgid "Switch to light mode"
+msgstr ""
+
+msgid "Switch to dark mode"
+msgstr ""
+
+msgid "Language"
+msgstr ""
+
+msgid "Practice algorithms every day, fun like a game."
+msgstr ""
+
+msgid "Competitive programming online judge ThinkAlgo OJ."
+msgstr ""

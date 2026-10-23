@@ -1,0 +1,23 @@
+{
+  "_generated": "Sinh tự động bởi scripts/build-catalog.mjs từ locale/*.po. Không sửa tay.",
+  "locale": "vi",
+  "plural": "nplurals=1; plural=0;",
+  "messages": {
+    "Blog": "Blog",
+    "Close menu": "Đóng menu",
+    "Competitive programming online judge ThinkAlgo OJ.": "Hệ thống chấm bài lập trình thi đấu ThinkAlgo OJ.",
+    "Contests": "Cuộc thi",
+    "Language": "Ngôn ngữ",
+    "Log in": "Đăng nhập",
+    "Main navigation": "Điều hướng chính",
+    "Open menu": "Mở menu",
+    "Practice algorithms every day, fun like a game.": "Luyện thuật toán mỗi ngày, vui như chơi.",
+    "Problems": "Đề bài",
+    "Ranking": "Xếp hạng",
+    "Skip navigation": "Bỏ qua điều hướng",
+    "Submissions": "Bài nộp",
+    "Switch to dark mode": "Chuyển sang chế độ tối",
+    "Switch to light mode": "Chuyển sang chế độ sáng",
+    "Toggle light/dark mode": "Đổi chế độ sáng/tối"
+  }
+}

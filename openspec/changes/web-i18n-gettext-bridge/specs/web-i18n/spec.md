@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Nguồn bản dịch duy nhất là file .po
-Catalog JSON dùng bởi Next.js SHALL được sinh tự động từ `locale/<lang>/LC_MESSAGES/django.po` và SHALL NOT được sửa tay. Không có chuỗi dịch nào được định nghĩa riêng trong mã `web/`.
+Catalog JSON dùng bởi Next.js SHALL được sinh tự động từ `locale/<lang>/LC_MESSAGES/django.po` (chuỗi dùng chung với Django) và `locale/<lang>/LC_MESSAGES/web.po` (chuỗi chỉ có ở giao diện Next.js; khi trùng khoá thì `web.po` thắng) và SHALL NOT được sửa tay. Không có chuỗi dịch nào được định nghĩa riêng trong mã `web/`.
 
 #### Scenario: Cập nhật bản dịch
 - **WHEN** một msgstr trong `locale/vi/LC_MESSAGES/django.po` thay đổi và build catalog được chạy lại

@@ -3,18 +3,20 @@
 import { Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useUiStore } from "@/components/providers/ui-store-provider";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 export function ThemeToggle() {
+  const { t } = useI18n();
   const hydrated = useUiStore((s) => s.hydrated);
   const resolved = useUiStore((s) => s.resolvedTheme);
   const setTheme = useUiStore((s) => s.setTheme);
 
   // Trước khi hydrate, nhãn trung tính để HTML server và client khớp nhau.
   const label = !hydrated
-    ? "Đổi chế độ sáng/tối"
+    ? t("Toggle light/dark mode")
     : resolved === "dark"
-      ? "Chuyển sang chế độ sáng"
-      : "Chuyển sang chế độ tối";
+      ? t("Switch to light mode")
+      : t("Switch to dark mode");
 
   return (
     <Button

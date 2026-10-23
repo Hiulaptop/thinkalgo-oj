@@ -1,0 +1,6 @@
+{
+  "_generated": "Sinh tự động bởi scripts/build-catalog.mjs từ locale/*.po. Không sửa tay.",
+  "locale": "en",
+  "plural": "nplurals=2; plural=(n != 1);",
+  "messages": {}
+}

@@ -8,18 +8,23 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/shell/theme-toggle";
 import { useUiStore } from "@/components/providers/ui-store-provider";
+import { useI18n } from "@/components/providers/i18n-provider";
+import type { Translator } from "@/lib/i18n/translate";
+import { LanguageSwitcher } from "@/components/shell/language-switcher";
 
 /*
  * Các trang OJ hiện vẫn do Django phục vụ (nginx định tuyến theo đường dẫn),
  * nên liên kết tới đó dùng <a> thường để tải đầy đủ trang, không dùng <Link>.
  */
-const NAV_ITEMS = [
-  { href: "/problems/", label: "Đề bài" },
-  { href: "/submissions/", label: "Bài nộp" },
-  { href: "/contests/", label: "Cuộc thi" },
-  { href: "/users/", label: "Xếp hạng" },
-  { href: "/blogs/", label: "Blog" },
-];
+function navItems(t: Translator["t"]) {
+  return [
+    { href: "/problems/", label: t("Problems") },
+    { href: "/submissions/", label: t("Submissions") },
+    { href: "/contests/", label: t("Contests") },
+    { href: "/users/", label: t("Ranking") },
+    { href: "/blogs/", label: t("Blog") },
+  ];
+}
 
 function isCurrent(pathname: string, href: string) {
   const base = href.replace(/\/$/, "");
@@ -31,6 +36,8 @@ const navItemClass =
 
 export function Navbar() {
   const pathname = usePathname();
+  const { t } = useI18n();
+  const items = navItems(t);
   const open = useUiStore((s) => s.mobileMenuOpen);
   const setOpen = useUiStore((s) => s.setMobileMenuOpen);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -54,7 +61,7 @@ export function Navbar() {
   return (
     <header className="sticky top-3 z-40 mx-auto w-full max-w-[1280px] px-4 pt-3">
       <nav
-        aria-label="Điều hướng chính"
+        aria-label={t("Main navigation")}
         className="relative flex items-center gap-3 rounded-full border-[3px] border-edge bg-surface px-4 py-2 shadow-hard-md"
       >
         <Link
@@ -68,7 +75,7 @@ export function Navbar() {
         </Link>
 
         <ul className="ml-4 hidden flex-1 items-center gap-1 lg:flex">
-          {NAV_ITEMS.map((item) => {
+          {items.map((item) => {
             const current = isCurrent(pathname, item.href);
             return (
               <li key={item.href}>
@@ -88,9 +95,10 @@ export function Navbar() {
         </ul>
 
         <div className="ml-auto flex items-center gap-2 lg:ml-0">
+          <LanguageSwitcher />
           <ThemeToggle />
           <Button asChild size="sm" className="hidden sm:inline-flex">
-            <a href="/login/">Đăng nhập</a>
+            <a href="/login/">{t("Log in")}</a>
           </Button>
           <Button
             ref={buttonRef}
@@ -98,7 +106,7 @@ export function Navbar() {
             variant="secondary"
             size="icon"
             className="lg:hidden"
-            aria-label={open ? "Đóng menu" : "Mở menu"}
+            aria-label={open ? t("Close menu") : t("Open menu")}
             aria-expanded={open}
             aria-controls="mobile-menu"
             onClick={() => setOpen(!open)}
@@ -113,7 +121,7 @@ export function Navbar() {
             className="absolute inset-x-0 top-full mt-3 rounded-card border-[3px] border-edge bg-surface p-3 shadow-hard-lg lg:hidden"
           >
             <ul className="flex flex-col gap-1">
-              {NAV_ITEMS.map((item) => {
+              {items.map((item) => {
                 const current = isCurrent(pathname, item.href);
                 return (
                   <li key={item.href}>
@@ -133,7 +141,7 @@ export function Navbar() {
               })}
               <li className="pt-1 sm:hidden">
                 <Button asChild className="w-full">
-                  <a href="/login/">Đăng nhập</a>
+                  <a href="/login/">{t("Log in")}</a>
                 </Button>
               </li>
             </ul>
