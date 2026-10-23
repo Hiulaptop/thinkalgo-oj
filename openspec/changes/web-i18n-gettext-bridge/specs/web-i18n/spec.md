@@ -27,7 +27,7 @@ Module i18n SHALL cung cấp `t(msgid, params?)`, `nt(singular, plural, n, param
 - **THEN** kết quả dùng bản dịch của đúng msgctxt đó, không lẫn với msgid cùng chữ không có ngữ cảnh
 
 ### Requirement: Chọn ngôn ngữ giống Django
-Với mỗi request, ngôn ngữ SHALL được chọn theo thứ tự: cookie `django_language` (nếu là ngôn ngữ được hỗ trợ), rồi header `Accept-Language`, rồi `en`. Tập ngôn ngữ hỗ trợ SHALL khớp `LANGUAGES` của Django (`en`, `vi`).
+Với mỗi request, ngôn ngữ SHALL được chọn theo thứ tự: cookie `django_language` (nếu là ngôn ngữ được hỗ trợ), rồi header `Accept-Language`, rồi ngôn ngữ mặc định của site. Ngôn ngữ mặc định SHALL bằng `LANGUAGE_CODE` của Django ở môi trường tương ứng (production hiện là `vi`) và được cấu hình cho `web` bằng biến môi trường `DEFAULT_LOCALE`. Tập ngôn ngữ hỗ trợ SHALL khớp `LANGUAGES` của Django (`en`, `vi`).
 
 #### Scenario: Cookie thắng Accept-Language
 - **WHEN** request có cookie `django_language=vi` và `Accept-Language: en-US`
@@ -35,7 +35,7 @@ Với mỗi request, ngôn ngữ SHALL được chọn theo thứ tự: cookie `
 
 #### Scenario: Giá trị lạ
 - **WHEN** cookie `django_language=fr` hoặc header chỉ chứa ngôn ngữ không hỗ trợ
-- **THEN** trang rơi xuống mức kế tiếp và cuối cùng dùng `en`
+- **THEN** trang rơi xuống mức kế tiếp và cuối cùng dùng ngôn ngữ mặc định của site (`vi` ở production)
 
 #### Scenario: Đổi ngôn ngữ
 - **WHEN** người dùng chọn ngôn ngữ trên trang Next.js

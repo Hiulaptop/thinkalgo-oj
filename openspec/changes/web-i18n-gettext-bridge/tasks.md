@@ -2,8 +2,8 @@
 
 ## 1. Tra cứu và xác nhận
 
-- [ ] 1.1 Tra tài liệu chính thức (Context7 nếu dùng được, nếu không thì trang chính thức + `npm view`) cho thư viện đọc `.po` và `cookies()`/`headers()`/server action của Next 15.5. Ghi URL và ngày tra vào mục "Nguồn" cuối `design.md`. Xong khi mục "Nguồn" có đủ các URL.
-- [ ] 1.2 Xác nhận `LANGUAGE_COOKIE_NAME` của repo là `django_language` (grep `settings.py`, `local_settings*`) và thứ tự chọn ngôn ngữ của `LocaleMiddleware` Django 4.2 bằng tài liệu chính thức. Xong khi kết quả được ghi vào `design.md`.
+- [x] 1.1 Tra tài liệu chính thức (Context7 nếu dùng được, nếu không thì trang chính thức + `npm view`) cho thư viện đọc `.po` và `cookies()`/`headers()`/server action của Next 15.5. Ghi URL và ngày tra vào mục "Nguồn" cuối `design.md`. Xong khi mục "Nguồn" có đủ các URL.
+- [x] 1.2 Xác nhận `LANGUAGE_COOKIE_NAME` của repo là `django_language` (grep `settings.py`, `local_settings*`) và thứ tự chọn ngôn ngữ của `LocaleMiddleware` Django 4.2 bằng tài liệu chính thức. Xong khi kết quả được ghi vào `design.md`.
 
 ## 2. Catalog
 
@@ -14,7 +14,7 @@
 ## 3. Module i18n
 
 - [ ] 3.1 Cài `t`, `nt`, `pt`, nội suy `%(name)s`/`%d`/`%s`/`%%` và bộ đánh giá `Plural-Forms` không dùng `eval`. Xong khi `tsc --noEmit` sạch và các ví dụ trong spec cho đúng kết quả khi chạy tay.
-- [ ] 3.2 Cài `getLocale()` (cookie → `Accept-Language` → `en`) và server action đổi ngôn ngữ ghi cookie `django_language`. Xong khi bộ ví dụ `Accept-Language` (`vi-VN`, `en-GB;q=0.5,vi`, `*`, rỗng, `fr`) cho kết quả trùng `LocaleMiddleware` của Django.
+- [ ] 3.2 Cài `getLocale()` (cookie → `Accept-Language` → `DEFAULT_LOCALE`, mặc định `vi`) và server action đổi ngôn ngữ ghi cookie `django_language`. Xong khi bộ ví dụ `Accept-Language` (`vi-VN`, `en-GB;q=0.5,vi`, `*`, rỗng, `fr`) cho kết quả trùng `LocaleMiddleware` của Django.
 - [ ] 3.3 `I18nProvider` cho client component, chỉ truyền phần catalog cần. Xong khi trang `/dev` có một client component dịch được và kích thước JSON gửi xuống nhỏ hơn catalog đầy đủ.
 - [ ] 3.4 Thêm nút đổi ngôn ngữ vào shell (theo `style.md`, đã có chỗ trong navbar) và dùng `t()` cho chuỗi của shell. Xong khi đổi ngôn ngữ ở Next.js rồi mở một trang Jinja trên dev compose thì trang đó cùng ngôn ngữ.
 

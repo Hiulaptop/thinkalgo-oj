@@ -8,7 +8,7 @@ Mọi trang Next.js (kế hoạch ở `docs/migration/page-migration.md`) cần 
 
 - Thêm bước build `po → JSON`: đọc `.po`, ghi catalog JSON cho Next.js. `.po` vẫn là nguồn sự thật, không sửa tay file JSON sinh ra.
 - Thêm module i18n trong `web/` với các hàm tương thích gettext: `t`, `nt` (số nhiều), `pt` (có ngữ cảnh `msgctxt`), nội suy `%(name)s` và `%d`.
-- Chọn ngôn ngữ cho mỗi request theo đúng thứ tự của Django `LocaleMiddleware`: cookie `django_language` → `Accept-Language` → `en`. Đổi ngôn ngữ ghi cùng cookie đó để hai stack luôn đồng ý.
+- Chọn ngôn ngữ cho mỗi request theo đúng thứ tự của Django `LocaleMiddleware`: cookie `django_language` → `Accept-Language` → ngôn ngữ mặc định của site (`LANGUAGE_CODE` của Django, production là `vi`, cấu hình bằng `DEFAULT_LOCALE`). Đổi ngôn ngữ ghi cùng cookie đó để hai stack luôn đồng ý.
 - Catalog chỉ gồm chuỗi mà mã `web/` dùng thật (cắt bớt chuỗi của admin và backend) để giữ gói client nhỏ.
 - Ghi quyết định về việc gỡ Jinja: **gỡ sớm theo từng trang**. Template Jinja của một trang bị xoá ngay sau khi trang Next.js tương ứng chạy ổn trên production vài ngày (mặc định 3 ngày, không có lỗi mới và đã đối chiếu), thay vì chờ cuối lộ trình. Template chỉ bị xoá khi không còn view/route nào khác dùng nó. Việc gỡ thực tế nằm trong change của từng trang, không nằm trong change này.
 
