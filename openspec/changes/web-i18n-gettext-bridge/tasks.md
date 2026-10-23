@@ -20,8 +20,8 @@
 
 ## 4. Đối chiếu
 
-- [ ] 4.1 Trình bày kịch bản kiểm thử chi tiết cho người dùng duyệt (phạm vi: mọi khoá × hai locale, các ca số nhiều và ngữ cảnh, `Accept-Language`). Xong khi người dùng approve. Không viết file `*.test.*`.
-- [ ] 4.2 Sau khi được duyệt, chạy script đối chiếu một lần (đặt ngoài repo) so `t`/`nt`/`pt` với `gettext`/`ngettext`/`pgettext` của Django. Xong khi 0 khác biệt và kết quả được ghi vào `design.md`.
+- [x] 4.1 Trình bày kịch bản kiểm thử chi tiết cho người dùng duyệt (phạm vi: mọi khoá × hai locale, các ca số nhiều và ngữ cảnh, `Accept-Language`). Xong khi người dùng approve. Không viết file `*.test.*`.
+- [x] 4.2 Sau khi được duyệt, chạy script đối chiếu một lần (đặt ngoài repo) so `t`/`nt`/`pt` với `gettext`/`ngettext`/`pgettext` của Django. Xong khi 0 khác biệt và kết quả được ghi vào `design.md`.
 - [x] 4.3 Chạy `npm run lint`, `npx tsc --noEmit`, `npm run build` trong `web/`. Xong khi cả ba qua.
 
 ## Workflow follow-up

@@ -79,3 +79,12 @@ Phát hiện khi làm và đã sửa trong artifact:
 2. Image `web` build với context `web/` và tag theo hash cây `web/` → catalog phải được commit trong `web/`.
 3. Chuỗi riêng của giao diện Next.js cần `web.po`, không đưa vào `django.po`.
 4. Home page (`src/app/page.tsx`) và `/dev/*` còn chuỗi tiếng Việt viết cứng; chuyển sang `t()` khi các trang đó được làm lại ở change của từng trang.
+
+### Đối chiếu toàn bộ với Django (task 4.2, 2026-10-23)
+
+Kịch bản đã được người dùng duyệt (mọi khoá × `en`/`vi`; số nhiều n = 0,1,2,5,11,21,100; `msgctxt`; `%(name)s`, `%d`, `%%`; msgid không có trong catalog). Chạy một lần ngoài repo: Django 4.2 thật (`translation.override`, bản `.mo` biên dịch bằng `msgfmt`) làm đáp án, `web.po` biên dịch riêng cho các khoá của `web.po`; phía Node dùng đúng catalog sinh bởi `build-catalog` cho toàn bộ 2222 khoá.
+
+- Kết quả: **4094 ca, 0 khác biệt.**
+- Lần chạy đầu có 1 khác biệt và lộ một lỗi thật: `msgid "Contributors"` trong `locale/en` là mục `#, fuzzy`; `msgfmt` bỏ mục fuzzy nên Django trả "Contributors" còn catalog trả "Contrib.". Đã sửa `build-catalog` bỏ qua mục fuzzy.
+- Không so được (106 mục, đều của Django, không có mục nào của `web.po`): chuỗi có định dạng ngoài `%s`/`%d` (ví dụ `%.2f MB`, `%h:%m` của định dạng thời gian JS) mà Python không định dạng được bằng bộ tham số của kịch bản; và các mục số nhiều không có `%d` khiến `ngettext % n` của Python báo lỗi (không liên quan `t`/`nt`). `interpolate` giữ nguyên các placeholder lạ; nếu trang nào cần `%.2f` thì mở rộng `format.ts` trong change của trang đó.
+- `npgettext` (số nhiều có ngữ cảnh) chưa có API `nt` tương ứng; `django.po` hiện không có mục nào như vậy.

@@ -149,7 +149,9 @@ function build(locale, keys) {
   for (const { ctx, msgid } of [...keys.values()].sort((a, b) => (a.ctx + a.msgid).localeCompare(b.ctx + b.msgid))) {
     const entry = po.translations[ctx]?.[msgid];
     const forms = entry?.msgstr ?? [];
-    const filled = forms.length > 0 && forms.every((s) => s !== "");
+    // msgfmt/compilemessages bỏ qua mục fuzzy, nên catalog cũng phải bỏ để giống Django.
+    const fuzzy = /\bfuzzy\b/.test(entry?.comments?.flag ?? "");
+    const filled = !fuzzy && forms.length > 0 && forms.every((s) => s !== "");
     if (!entry || !filled) {
       if (locale !== cfg.source) missing.push(ctx ? `[${ctx}] ${msgid}` : msgid);
       continue;
