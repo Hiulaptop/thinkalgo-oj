@@ -596,6 +596,9 @@ class Problem(models.Model):
 
     def save(self, *args, **kwargs):
         is_clone = kwargs.pop('is_clone', False)
+        if self.pk and not kwargs.get('update_fields'):
+            from judge.utils.problem_package_guards import assert_package_mutable
+            assert_package_mutable(self.pk)
         # if short_circuit = true the judge will stop judging
         # as soon as the submission failed a test case
         self.short_circuit = not self.partial

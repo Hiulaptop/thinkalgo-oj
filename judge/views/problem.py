@@ -1052,6 +1052,8 @@ class ProblemUpdatePolygon(ProblemImportPolygon, ProblemMixin, SingleObjectMixin
 
     def get_object(self, queryset=None):
         problem = super().get_object(queryset)
+        from judge.utils.problem_package_guards import assert_package_mutable
+        assert_package_mutable(problem.pk)
         if not problem.is_editable_by(self.request.user):
             raise PermissionDenied()
         return problem

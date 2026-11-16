@@ -270,6 +270,8 @@ class ProblemDataView(TitleMixin, ProblemManagerMixin):
 
     def post(self, request, *args, **kwargs):
         self.object = problem = self.get_object()
+        from judge.utils.problem_package_guards import assert_package_mutable
+        assert_package_mutable(problem.pk)
         data_form = self.get_data_form(post=True)
         valid_files = self.get_valid_files(data_form.instance, post=True)
         data_form.zip_valid = valid_files is not False

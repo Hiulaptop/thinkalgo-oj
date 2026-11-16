@@ -146,6 +146,8 @@ class Submission(models.Model):
     def can_see_detail(self, user):
         if not user.is_authenticated:
             return False
+        if hasattr(self, 'reference_import'):
+            return self.problem.is_editable_by(user) or user.has_perm('judge.view_all_submission')
         profile = user.profile
         source_visibility = self.problem.submission_source_visibility
         if self.problem.is_editable_by(user):
