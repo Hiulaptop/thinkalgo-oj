@@ -38,6 +38,7 @@ x-common: &common
     # container equivalent.
     DJANGO_SETTINGS_MODULE: dmoj.settings
   volumes:
+    - /var/www/thinkcodeoj/private-imports:/private-problem-imports
     - /var/www/thinkcodeoj/media:/media
     - /var/www/thinkcodeoj/problem_data:/problems
     - /var/log/thinkcodeoj:/site/log
@@ -56,6 +57,7 @@ services:
     # from x-common must be repeated here explicitly in addition to the
     # static/ mount below.
     volumes:
+      - /var/www/thinkcodeoj/private-imports:/private-problem-imports
       - /var/www/thinkcodeoj/media:/media
       - /var/www/thinkcodeoj/problem_data:/problems
       - /var/log/thinkcodeoj:/site/log

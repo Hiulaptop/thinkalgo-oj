@@ -68,6 +68,7 @@ x-common: &common
     R2_ENDPOINT_URL: http://minio:9000
     R2_PROBLEMS_BUCKET: thinkcode-problems
   volumes: &common-volumes
+    - dev-private-imports:/private-problem-imports
     - dev-media:/media
     - dev-problems:/problems
     - dev-log:/site/log
@@ -126,6 +127,7 @@ services:
     # x-common here too, same caveat as docker-compose.production.yml.
     volumes:
       - dev-media:/media
+      - dev-private-imports:/private-problem-imports
       - dev-problems:/problems
       - dev-log:/site/log
       - dev-static:/site/static
@@ -172,6 +174,7 @@ services:
       - dev-media:/media:ro
 
 volumes:
+  dev-private-imports:
   dev-db-data:
   dev-media:
   dev-problems:

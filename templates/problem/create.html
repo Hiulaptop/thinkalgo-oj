@@ -14,6 +14,9 @@
         {% if quota_warning_suffix %}{{ quota_warning_suffix|safe }}{% endif %}
     </div>
     {% endif %}
+    {% if perms.judge.import_problem_package %}
+        <p><a href="{{ url('problem_package_upload') }}">Import bài từ ZIP (đề, test và lời giải)</a></p>
+    {% endif %}
     {% if perms.judge.import_polygon_package %}
         <div class="alert alert-warning alert-dismissable">
             <a class="close">x</a>

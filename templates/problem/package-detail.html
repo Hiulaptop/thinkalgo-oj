@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block body %}
+<p>{{ test_count }} cặp test · Trạng thái: <strong>{{ record.state }}</strong></p>
+{% if record.error %}<p role="alert">{{ record.error }}</p>{% endif %}
+{% if record.problem_id %}
+    <p><a href="{{ url('problem_detail', record.problem.code) }}">Mở bài {{ record.problem.code }}</a></p>
+    <p>Bài và lời giải được tạo ở trạng thái ẩn. Kết quả AC không tự công khai bài.</p>
+    {% if record.submission_id %}
+        <p><a href="{{ url('submission_status', record.submission_id) }}">Bài nộp kiểm chứng #{{ record.submission_id }}</a>: {{ record.submission.long_status }}</p>
+    {% endif %}
+    {% if record.state in ('FAILED', 'PUBLISHING', 'SUBMITTING') %}
+        <form method="post" action="{{ url('problem_package_retry', record.pk) }}">
+            {% csrf_token %}<button type="submit">Thử lại</button>
+        </form>
+    {% endif %}
+    <p><a href="">Cập nhật trạng thái</a></p>
+{% else %}
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p() }}
+        <button type="submit">Tạo bài và chấm lời giải chuẩn</button>
+    </form>
+    <h3>Đề bài (Markdown)</h3><pre>{{ record.manifest.statement }}</pre>
+    <h3>Lời giải (Markdown)</h3><pre>{{ record.manifest.editorial }}</pre>
+{% endif %}
+<p><a href="{{ url('problem_package_download', record.pk, 'source') }}">Tải ZIP nguồn</a> ·
+<a href="{{ url('problem_package_download', record.pk, 'solution') }}">Tải solution.cpp</a></p>
+{% endblock %}

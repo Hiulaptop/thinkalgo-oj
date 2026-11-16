@@ -10,6 +10,7 @@ from judge.models.problem import LanguageLimit, License, OrganizationProblemTag,
     ProblemGroup, ProblemTranslation, ProblemType, Solution, SubmissionSourceAccess, TranslatedProblemQuerySet
 from judge.models.problem_data import CHECKERS, ProblemData, ProblemTestCase, problem_data_storage, \
     problem_directory_file
+from judge.models.problem_package import ProblemPackageImport
 from judge.models.profile import Badge, Organization, OrganizationMonthlyUsage, OrganizationQuota, \
     OrganizationRequest, Profile, WebAuthnCredential
 from judge.models.runtime import Judge, Language, RuntimeVersion
