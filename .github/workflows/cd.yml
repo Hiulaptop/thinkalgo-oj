@@ -138,6 +138,11 @@ jobs:
           export DEPLOY_ENV_FILE="$ENV_FILE"
 
           docker pull "$IMAGE_TAG"
+          # Initialize the private bind mount using the runtime image's UID/GID.
+          # Docker otherwise creates the host directory as root:root (0755).
+          docker run --rm --user root \
+            -v /var/www/thinkcodeoj/private-imports:/private-problem-imports \
+            "$IMAGE_TAG" sh -c 'chown "$(id -u dmoj):$(id -g dmoj)" /private-problem-imports && chmod 0700 /private-problem-imports'
           docker run --rm --network host --env-file "$ENV_FILE" \
             "$IMAGE_TAG" python3 manage.py check --deploy --fail-level ERROR
           docker run --rm --network host --env-file "$ENV_FILE" \

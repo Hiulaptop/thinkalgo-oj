@@ -72,6 +72,7 @@ COPY dmoj/local_settings.docker.py.example dmoj/local_settings.py
 COPY websocket/config.docker.js websocket/config.js
 
 RUN useradd --create-home --shell /bin/bash dmoj && \
+    install -d -m 0700 -o dmoj -g dmoj /private-problem-imports && \
     chown -R dmoj:dmoj /site
 USER dmoj
 
