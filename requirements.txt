@@ -40,6 +40,7 @@ netaddr
 webauthn<1
 bleach[css]
 markdown2 @ git+https://github.com/VNOI-Admin/python-markdown2.git
+latex2mathml
 discord-webhook
 django-admin-sortable2
 icalendar
