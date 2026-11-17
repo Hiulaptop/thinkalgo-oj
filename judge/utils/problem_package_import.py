@@ -61,7 +61,7 @@ def enqueue_import(pk):
         ProblemPackageImport.objects.filter(pk=pk).update(error='Queue unavailable. Retry from this page.')
 
 
-def confirm_import(pk, user, metadata):
+def confirm_import(pk, user, metadata, *, problem_form=None, solution_formset=None):
     require_import(user)
     target = None
     staging = None
@@ -81,19 +81,34 @@ def confirm_import(pk, user, metadata):
                     'judge.create_mass_testcases'):
                 raise ValidationError('Too many test cases.')
             language = Language.objects.get(pk=metadata['language'], key__startswith='CPP')
-            problem = Problem(code=metadata['code'], name=metadata['name'],
-                              description=manifest['statement'], time_limit=metadata['time_limit'],
-                              memory_limit=metadata['memory_limit'], points=metadata['points'],
-                              group_id=metadata['group'], partial=True, is_public=False)
-            problem.full_clean(exclude=['deleted_at'])
-            problem.save()
+            if problem_form is not None:
+                problem = problem_form.save(commit=False)
+                problem.is_public = False
+                problem.date = timezone.now()
+                problem.save()
+                problem_form.save_m2m()
+            else:
+                problem = Problem(code=metadata['code'], name=metadata['name'],
+                                  description=manifest['statement'], time_limit=metadata['time_limit'],
+                                  memory_limit=metadata['memory_limit'], points=metadata['points'],
+                                  group_id=metadata['group'], partial=True, is_public=False)
+                problem.full_clean(exclude=['deleted_at'])
+                problem.save()
+                problem.types.set(metadata['types'])
             problem.authors.add(user.profile)
-            problem.types.set(metadata['types'])
+            problem.curators.add(user.profile)
             problem.allowed_languages.set(Language.objects.filter(include_in_problem=True))
             problem.allowed_languages.add(language)
-            solution = Solution.objects.create(problem=problem, content=manifest['editorial'],
-                                                publish_on=timezone.now(), is_public=False)
-            solution.authors.add(user.profile)
+            if solution_formset is not None:
+                solution_formset.instance = problem
+                for solution in solution_formset.save(commit=False):
+                    solution.is_public = False
+                    solution.save()
+                solution_formset.save_m2m()
+            else:
+                solution = Solution.objects.create(problem=problem, content=manifest['editorial'],
+                                                    publish_on=timezone.now(), is_public=False)
+                solution.authors.add(user.profile)
             root = Path(settings.DMOJ_PROBLEM_DATA_ROOT)
             root.mkdir(parents=True, exist_ok=True)
             staging = Path(tempfile.mkdtemp(prefix='.package-', dir=root))
@@ -104,11 +119,19 @@ def confirm_import(pk, user, metadata):
                         with original.open(manifest['root'] + name) as src, tests.open(name, 'w') as dst:
                             shutil.copyfileobj(src, dst, 65536)
             data = ProblemData.objects.create(problem=problem, zipfile=problem.code + '/tests.zip')
-            ProblemTestCase.objects.bulk_create([
-                ProblemTestCase(dataset=problem, order=i, input_file=pair[0], output_file=pair[1],
-                                points=1, is_pretest=False)
-                for i, pair in enumerate(manifest['tests'], 1)
-            ])
+            from judge.views.problem_data import ProblemCaseFormSet
+            case_values = {'form-TOTAL_FORMS': str(len(manifest['tests'])), 'form-INITIAL_FORMS': '0',
+                           'form-MIN_NUM_FORMS': '0', 'form-MAX_NUM_FORMS': str(len(manifest['tests']))}
+            for i, pair in enumerate(manifest['tests']):
+                for key, value in {'order': i + 1, 'type': 'C', 'input_file': pair[0],
+                                   'output_file': pair[1], 'points': 1, 'is_pretest': ''}.items():
+                    case_values['form-%d-%s' % (i, key)] = value
+            case_forms = ProblemCaseFormSet(case_values, queryset=ProblemTestCase.objects.none(), valid_files=files)
+            if not case_forms.is_valid():
+                raise ValidationError(str(case_forms.errors) + str(case_forms.non_form_errors()))
+            for case in case_forms.save(commit=False):
+                case.dataset = problem
+                case.save()
             init = ProblemDataCompiler(problem, data, problem.cases.order_by('order'), files).make_init()
             if not init:
                 raise PackageValidationError('Empty test configuration.')

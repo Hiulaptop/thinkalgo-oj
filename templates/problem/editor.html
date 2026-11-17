@@ -209,6 +209,22 @@
             <a href="{{ url('problem_update_polygon', object.code) }}">{{ _('Update problem from Codeforces Polygon package') }}</a>
         </div>
     {% endif %}
+    {% if package_import %}
+        <div class="alert">
+            <p>ZIP: {{ package_import.state }}. {{ package_import.error }}</p>
+            <a href="{{ url('problem_package_download', package_import.pk, 'solution') }}">solution.cpp</a> ·
+            <a href="{{ url('problem_package_download', package_import.pk, 'source') }}">ZIP nguồn</a> ·
+            <a href="{{ url('problem_data', problem.code) }}">{{ _('Test data') }}</a>
+            {% if package_import.submission_id %}
+                <a href="{{ url('submission_status', package_import.submission_id) }}">#{{ package_import.submission_id }}: {{ package_import.submission.long_status }}</a>
+            {% endif %}
+            {% if package_import.state in ('FAILED', 'PUBLISHING', 'SUBMITTING') %}
+                <form method="post" action="{{ url('problem_package_retry', package_import.pk) }}">
+                    {% csrf_token %}<button type="submit">Thử lại chấm lời giải chuẩn</button>
+                </form>
+            {% endif %}
+        </div>
+    {% endif %}
     <form action="" method="post" class="form-area" enctype="multipart/form-data" style="display: flex; justify-content: center; flex-direction: column;">
         {% if form.errors or solution_formset.errors %}
             <p class="errornote"> {{ _('Please correct the error below.') }}</p>

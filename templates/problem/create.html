@@ -14,9 +14,6 @@
         {% if quota_warning_suffix %}{{ quota_warning_suffix|safe }}{% endif %}
     </div>
     {% endif %}
-    {% if perms.judge.import_problem_package %}
-        <p><a href="{{ url('problem_package_upload') }}">Import bài từ ZIP (đề, test và lời giải)</a></p>
-    {% endif %}
     {% if perms.judge.import_polygon_package %}
         <div class="alert alert-warning alert-dismissable">
             <a class="close">x</a>
@@ -25,7 +22,30 @@
     {% endif %}
     <form action="" method="post" class="form-area" enctype="multipart/form-data" style="display: flex; justify-content: center; flex-direction: column;">
         {% csrf_token %}
+        {% if perms.judge.import_problem_package %}
+            <p><label for="package">Nhập từ ZIP</label>
+                <input id="package" name="package" type="file" accept=".zip">
+                <button type="submit" name="action" value="load_package" formnovalidate>Điền dữ liệu từ ZIP</button>
+            </p>
+            <p class="helptext">statement.md, editorial.md, solution.cpp và tests/*.in, tests/*.out. Chưa tạo bài cho đến khi bấm Tạo.</p>
+        {% endif %}
+        {% if package_draft %}
+            <input type="hidden" name="package_id" value="{{ package_draft.pk }}">
+            <p>Đã nhận {{ package_draft.manifest.tests|length }} cặp test. Có thể sửa nội dung bên dưới trước khi tạo.</p>
+        {% endif %}
         <table class="django-as-table">{{ form.as_table() }}</table>
+        {% if package_draft %}
+            <h3>{{ _('Editorial') }}</h3>
+            <table class="django-as-table">{{ solution_formset.as_table() }}</table>
+            <p><label for="reference_language">Ngôn ngữ lời giải chuẩn</label>
+                <select id="reference_language" name="reference_language" required>
+                    <option value="">---</option>
+                    {% for language in reference_languages %}
+                        <option value="{{ language.pk }}"{% if reference_language == language.pk|string %} selected{% endif %}>{{ language.name }}</option>
+                    {% endfor %}
+                </select>
+            </p>
+        {% endif %}
         <hr>
         <div style="display: flex; justify-content: flex-end;"><input type="submit" value="{{ _('Create') }}" class="button"></div>
     </form>

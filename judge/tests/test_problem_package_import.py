@@ -63,16 +63,59 @@ class PackageImportTest(TestCase):
 
     def test_upload_page(self):
         self.client.force_login(self.user)
-        response = self.client.get('/problems/import-zip/')
+        response = self.client.get('/problems/import-zip/', follow=True)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'statement.md')
+
+    def test_load_zip_uses_existing_create_form_without_creating_problem(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from judge.forms import ProblemEditForm
+        self.client.force_login(self.user)
+        before = Problem.objects.count()
+        response = self.client.post('/problems/create', {
+            'action': 'load_package',
+            'package': SimpleUploadedFile('package.zip', make_package().getvalue()),
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Problem.objects.count(), before)
+        self.assertIsInstance(response.context['form'], ProblemEditForm)
+        self.assertEqual(response.context['form']['name'].value(), 'Các số phân biệt')
+        self.assertEqual(response.context['form']['memory_limit'].value(), 524288)
+        self.assertEqual(response.context['solution_formset'].forms[0]['content'].value(), '# Lời giải')
 
     def test_preview_page(self):
         record = create_draft(self.user, make_package())
         self.client.force_login(self.user)
-        response = self.client.get('/problems/import-zip/%s/' % record.pk)
+        response = self.client.get('/problems/import-zip/%s/' % record.pk, follow=True)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Các số phân biệt')
+
+    @patch('judge.tasks.problem_package.run_import.delay')
+    def test_create_from_editor_preserves_user_changes(self, enqueue):
+        record = create_draft(self.user, make_package())
+        self.client.force_login(self.user)
+        preview = self.client.get('/problems/create', {'package_id': str(record.pk)})
+        prefix = preview.context['solution_formset'].prefix
+        payload = {
+            'package_id': str(record.pk), 'code': 'editedpackage', 'name': 'Edited title',
+            'description': 'Edited statement', 'time_limit': '1', 'memory_limit': '524288',
+            'points': '1', 'partial': 'on', 'group': self.group.pk, 'types': [self.kind.pk],
+            'submission_source_visibility_mode': 'F', 'testcase_visibility_mode': 'A',
+            'reference_language': self.language.pk,
+            prefix + '-TOTAL_FORMS': '1', prefix + '-INITIAL_FORMS': '0',
+            prefix + '-MIN_NUM_FORMS': '0', prefix + '-MAX_NUM_FORMS': '1',
+            prefix + '-0-content': 'Edited editorial', prefix + '-0-publish_on': '2026-11-17',
+        }
+        response = self.client.post('/problems/create', payload)
+        if response.status_code == 200:
+            self.fail(str(response.context['form'].errors) + str(response.context['solution_formset'].errors))
+        self.assertEqual(response.status_code, 302)
+        record.refresh_from_db()
+        self.assertEqual(record.problem.description, 'Edited statement')
+        self.assertEqual(record.problem.solution.content, 'Edited editorial')
+        self.assertEqual(record.problem.cases.count(), 2)
+        response = self.client.get(response.url)
+        self.assertEqual(response.status_code, 200)
 
     @patch('judge.tasks.problem_package.run_import.delay')
     def test_publish_failure_preserves_problem(self, enqueue):

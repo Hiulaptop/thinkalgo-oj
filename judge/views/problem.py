@@ -928,6 +928,89 @@ class ProblemCreate(PermissionRequiredMixin, TitleMixin, CreateView):
     form_class = ProblemEditForm
     permission_required = 'judge.add_problem'
 
+    def get_package_draft(self):
+        from judge.models import ProblemPackageImport
+        from judge.utils.problem_package_import import require_access, require_import
+        key = self.request.POST.get('package_id') or self.request.GET.get('package_id')
+        if not key:
+            return None
+        require_import(self.request.user)
+        try:
+            record = get_object_or_404(ProblemPackageImport, pk=key)
+        except (ValueError, ValidationError):
+            raise Http404()
+        require_access(record, self.request.user)
+        return record
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        record = getattr(self, 'package_draft', None) or self.get_package_draft()
+        context['package_draft'] = record
+        if record:
+            context['solution_formset'] = getattr(self, 'package_solutions', None) or \
+                ProposeProblemSolutionFormSet(instance=context['form'].instance, initial=[{
+                    'content': record.manifest['editorial'], 'publish_on': timezone.now().date(),
+                    'authors': [self.request.profile.pk], 'is_public': False,
+                }])
+            context['reference_languages'] = Language.objects.filter(key__startswith='CPP')
+            context['reference_language'] = self.request.POST.get('reference_language', '')
+        return context
+
+    def post(self, request, *args, **kwargs):
+        from judge.utils.problem_package_import import confirm_import, create_draft
+        from judge.utils.problem_package import PackageValidationError
+        self.object = None
+        if request.POST.get('action') == 'load_package':
+            form = self.form_class(user=request.user, initial=self.get_initial())
+            try:
+                if 'package' not in request.FILES:
+                    raise ValidationError('Choose a ZIP file.')
+                self.package_draft = record = create_draft(request.user, request.FILES['package'])
+                initial = self.get_initial()
+                initial.update({
+                    'description': record.manifest['statement'], 'name': record.manifest['name'],
+                    'time_limit': record.manifest['time_limit'],
+                    'memory_limit': record.manifest['memory_mb'] * 1024 if record.manifest['memory_mb'] else None,
+                })
+                for name in ('code', 'points', 'source', 'group', 'types', 'testers'):
+                    if name in request.POST:
+                        initial[name] = request.POST.getlist(name) if name in ('types', 'testers') else request.POST[name]
+                form = self.form_class(user=request.user, initial=initial)
+            except (ValidationError, PackageValidationError, OSError) as exc:
+                form = self.get_form()
+                form.is_valid()
+                form.add_error(None, str(exc) if not isinstance(exc, OSError) else
+                               'Cannot store ZIP upload. Contact the administrator.')
+            return self.render_to_response(self.get_context_data(form=form))
+        record = self.get_package_draft()
+        if not record:
+            return super().post(request, *args, **kwargs)
+        if record.problem_id:
+            return HttpResponseRedirect(reverse('problem_edit', args=[record.problem.code]))
+        self.package_draft = record
+        form = self.get_form()
+        self.package_solutions = ProposeProblemSolutionFormSet(request.POST, instance=form.instance)
+        valid = form.is_valid()
+        valid = self.package_solutions.is_valid() and valid
+        language_id = request.POST.get('reference_language', '')
+        language = Language.objects.filter(key__startswith='CPP', pk=language_id).first() if language_id.isdigit() else None
+        if not language:
+            form.add_error(None, 'Choose a C++ runtime for the reference solution.')
+            valid = False
+        if valid:
+            try:
+                with revisions.create_revision(atomic=True):
+                    record = confirm_import(record.pk, request.user, {'language': language.pk},
+                                            problem_form=form, solution_formset=self.package_solutions)
+                    self.object = record.problem
+                    self.save_statement(form, record.problem)
+                    revisions.set_user(request.user)
+                    revisions.set_comment(_('Created on site'))
+                return HttpResponseRedirect(reverse('problem_edit', args=[record.problem.code]))
+            except (ValidationError, PackageValidationError) as exc:
+                form.add_error(None, str(exc))
+        return self.render_to_response(self.get_context_data(form=form))
+
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs['user'] = self.request.user
@@ -972,6 +1055,11 @@ class ProblemCreate(PermissionRequiredMixin, TitleMixin, CreateView):
             initial['types'] = ProblemType.objects.get(name='uncategorized').pk
         except ProblemType.DoesNotExist:
             initial['types'] = ProblemType.objects.order_by('id').first().pk
+        record = self.get_package_draft()
+        if record and not record.problem_id:
+            initial.update(description=record.manifest['statement'], name=record.manifest['name'],
+                           time_limit=record.manifest['time_limit'],
+                           memory_limit=record.manifest['memory_mb'] * 1024 if record.manifest['memory_mb'] else None)
         return initial
 
 
@@ -1103,6 +1191,12 @@ class ProblemEdit(ProblemMixin, TitleMixin, UpdateView):
         data['lang_limit_formset'] = self.get_language_limit_formset()
         data['solution_formset'] = self.get_solution_formset()
         data['organization'] = self.object.organization
+        from judge.models import ProblemPackageImport
+        record = ProblemPackageImport.objects.select_related('submission').filter(problem=self.object).first()
+        if record and record.state == 'JUDGING' and record.submission and record.submission.status in ('D', 'CE', 'IE', 'AB'):
+            ProblemPackageImport.objects.filter(pk=record.pk, state='JUDGING').update(state='FINISHED')
+            record.state = 'FINISHED'
+        data['package_import'] = record
         return data
 
     def get_form_kwargs(self):
