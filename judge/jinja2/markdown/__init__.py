@@ -3,7 +3,6 @@ import re
 from html.parser import HTMLParser
 from urllib.parse import urlparse
 
-import markdown2
 from bleach.css_sanitizer import CSSSanitizer
 from bleach.sanitizer import Cleaner
 from django.conf import settings
@@ -16,6 +15,7 @@ from judge.jinja2.markdown.lazy_load import lazy_load as lazy_load_processor
 from judge.utils.camo import client as camo_client
 from judge.utils.texoid import TEXOID_ENABLED, TexoidRenderer
 from .bleach_whitelist import all_styles, mathml_attrs, mathml_tags
+from .mathjax import MathJaxMarkdown
 from .. import registry
 
 logger = logging.getLogger('judge.html')
@@ -108,7 +108,7 @@ def markdown(text, style, math_engine=None, lazy_load=False, strip_paragraphs=Fa
     if lazy_load:
         post_processors.append(lazy_load_processor)
 
-    result = markdown2.markdown(text, safe_mode=safe_mode, extras=extras)
+    result = MathJaxMarkdown(safe_mode=safe_mode, extras=extras).convert(text)
 
     result = add_table_class(result)
     result = inc_header(result, 2)
