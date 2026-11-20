@@ -135,9 +135,49 @@ def fast_delete_problem(problem: Problem):
 
     post_delete.disconnect(submission_delete, sender=Submission)
     post_delete.disconnect(contest_submission_delete, sender=ContestSubmission)
+    worker_locks = []
+    operation_folders = []
     try:
+        from judge.models import ProblemAuthoringState, ProblemDataOperation, ProblemReferenceRun
+        from django.core.exceptions import ValidationError
+        from django.utils import timezone
+        problem = Problem.objects.select_for_update().get(pk=problem.pk)
+        list(ProblemAuthoringState.objects.select_for_update().filter(problem=problem))
+        operations = ProblemDataOperation.objects.filter(problem=problem)
+        if operations.filter(lease_until__gt=timezone.now()).exists():
+            raise ValidationError('Wait for active data workers before permanently deleting this problem.')
+        from django.conf import settings
+        from pathlib import Path
+        import fcntl
+        for operation in operations:
+            folder = Path(settings.DMOJ_PROBLEM_DATA_ROOT) / '.authoring' / str(operation.pk)
+            if not folder.exists():
+                continue
+            lock = (folder / 'worker.lock').open('a+b')
+            try:
+                fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError as exc:
+                lock.close()
+                raise ValidationError('Wait for active data workers before permanently deleting this problem.') from exc
+            worker_locks.append(lock)
+            operation_folders.append(folder)
+        if ProblemReferenceRun.objects.filter(
+                problem=problem, state__in=('PENDING', 'DISPATCHING', 'JUDGING')).exists():
+            raise ValidationError('Wait for reference verification before permanently deleting this problem.')
+        ProblemAuthoringState.objects.filter(problem=problem).update(current_operation=None)
+        ProblemReferenceRun.objects.filter(problem=problem).delete()
+        operations.delete()
         SubmissionTestCase.objects.filter(submission__problem=problem).delete()
         problem.delete()
+
+        def clean_operation_folders():
+            import shutil
+            for folder in operation_folders:
+                shutil.rmtree(folder, ignore_errors=True)
+
+        transaction.on_commit(clean_operation_folders)
     finally:
+        for lock in worker_locks:
+            lock.close()
         post_delete.connect(submission_delete, sender=Submission)
         post_delete.connect(contest_submission_delete, sender=ContestSubmission)

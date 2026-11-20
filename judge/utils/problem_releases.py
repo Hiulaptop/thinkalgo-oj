@@ -10,6 +10,7 @@ from pathlib import Path
 import boto3
 from botocore.exceptions import ClientError
 from django.conf import settings
+from django.db import transaction
 from django.utils import timezone as django_timezone
 
 
@@ -89,8 +90,11 @@ def publish_problem_to_r2(code, version=None):
     local test data (including test case points) changes and the change
     needs to reach judges that grade from R2.
     """
-    from judge.models import Problem, ProblemData
+    from judge.models import Problem, ProblemAuthoringState, ProblemData
+    from judge.problem_authoring.types import AuthoringError
 
+    if ProblemAuthoringState.objects.filter(problem__code=code).exists():
+        raise AuthoringError('authoring_owned', 'Use the shared data operation to synchronize this problem.')
     version = version or next_release_version(code)
     source_dir = os.path.join(settings.DMOJ_PROBLEM_DATA_ROOT, code)
     package, manifest_bytes, manifest = build_release(source_dir, code, version)
@@ -102,16 +106,19 @@ def publish_problem_to_r2(code, version=None):
     client.put_object(Bucket=bucket, Key=f'{prefix}/manifest.json', Body=manifest_bytes,
                       ContentType='application/json')
 
-    problem = Problem.objects.filter(code=code).first()
-    if problem is not None:
-        data, _ = ProblemData.objects.get_or_create(problem=problem)
-        data.r2_release_version = version
-        data.r2_release_sha256 = manifest['sha256']
-        data.r2_release_key = package_key
-        data.r2_released_at = django_timezone.now()
-        data.save(update_fields=[
-            'r2_release_version', 'r2_release_sha256', 'r2_release_key', 'r2_released_at',
-        ])
+    with transaction.atomic():
+        problem = Problem.objects.select_for_update().filter(code=code).first()
+        if problem is not None:
+            if ProblemAuthoringState.objects.filter(problem=problem).exists():
+                raise AuthoringError('authoring_owned', 'A shared data operation superseded this release job.')
+            data, _ = ProblemData.objects.get_or_create(problem=problem)
+            data.r2_release_version = version
+            data.r2_release_sha256 = manifest['sha256']
+            data.r2_release_key = package_key
+            data.r2_released_at = django_timezone.now()
+            data.save(update_fields=[
+                'r2_release_version', 'r2_release_sha256', 'r2_release_key', 'r2_released_at',
+            ])
     return manifest
 
 

@@ -146,7 +146,7 @@ class Submission(models.Model):
     def can_see_detail(self, user):
         if not user.is_authenticated:
             return False
-        if hasattr(self, 'reference_import'):
+        if hasattr(self, 'reference_import') or hasattr(self, 'problemreferencerun'):
             return self.problem.is_editable_by(user) or user.has_perm('judge.view_all_submission')
         profile = user.profile
         source_visibility = self.problem.submission_source_visibility
@@ -213,6 +213,26 @@ class Submission(models.Model):
             organization.consume_credit(consumed_credit)
 
     update_credit.alters_data = True
+
+    def save(self, *args, **kwargs):
+        if self._state.adding and self.problem_id:
+            from django.core.exceptions import ValidationError
+            from django.db import transaction
+            from judge.models import Problem, Profile
+            from judge.models.problem_authoring import ProblemAuthoringState
+            from judge.problem_authoring.policy import assert_can_submit
+            from judge.problem_authoring.types import AuthoringError
+            with transaction.atomic():
+                if self.user_id:
+                    Profile.objects.select_for_update().get(pk=self.user_id)
+                Problem.objects.select_for_update().get(pk=self.problem_id)
+                list(ProblemAuthoringState.objects.select_for_update().filter(problem_id=self.problem_id))
+                try:
+                    assert_can_submit(self.problem_id)
+                except AuthoringError as exc:
+                    raise ValidationError(exc.message) from exc
+                return super().save(*args, **kwargs)
+        return super().save(*args, **kwargs)
 
     @property
     def is_graded(self):

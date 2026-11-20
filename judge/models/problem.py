@@ -594,15 +594,40 @@ class Problem(models.Model):
 
         return {'method': 'standard'}
 
+    @transaction.atomic
     def save(self, *args, **kwargs):
         is_clone = kwargs.pop('is_clone', False)
-        if self.pk and not kwargs.get('update_fields'):
+        changed = set()
+        grading_changed = set()
+        if self.pk:
+            from django.core.exceptions import ValidationError
+            from judge.problem_authoring.policy import GRADING_FIELDS, assert_mutation_allowed
+            from judge.problem_authoring.types import AuthoringError
             from judge.utils.problem_package_guards import assert_package_mutable
-            assert_package_mutable(self.pk)
+            grading_changed = GRADING_FIELDS.intersection(field.name for field in self._meta.concrete_fields)
+            tracked = {field.name for field in self._meta.concrete_fields if not field.primary_key}
+            if kwargs.get('update_fields'):
+                tracked.intersection_update(kwargs['update_fields'])
+            previous = type(self).objects.select_for_update().filter(pk=self.pk).values(*tracked).first()
+            changed = {name for name in tracked if previous and
+                       previous[name] != getattr(self, self._meta.get_field(name).attname)}
+            grading_changed.intersection_update(changed)
+            try:
+                assert_mutation_allowed(self.pk, changed)
+                if 'is_public' in changed and self.is_public:
+                    from judge.problem_authoring.policy import assert_can_submit
+                    assert_can_submit(self.pk)
+                if grading_changed:
+                    assert_package_mutable(self.pk)
+            except AuthoringError as exc:
+                raise ValidationError(exc.message) from exc
         # if short_circuit = true the judge will stop judging
         # as soon as the submission failed a test case
         self.short_circuit = not self.partial
         super(Problem, self).save(*args, **kwargs)
+        if changed:
+            from judge.problem_authoring.revisions import invalidate_revision
+            invalidate_revision(self.pk, grading=bool(grading_changed))
         # Ignore the custom save if we are cloning a problem
         if is_clone:
             return
@@ -705,6 +730,34 @@ class LanguageLimit(models.Model):
                                        validators=[MinValueValidator(settings.DMOJ_PROBLEM_MIN_MEMORY_LIMIT),
                                                    MaxValueValidator(settings.DMOJ_PROBLEM_MAX_MEMORY_LIMIT)])
 
+    def clean(self):
+        super().clean()
+        if self.problem_id:
+            from django.core.exceptions import ValidationError
+            from judge.problem_authoring.policy import assert_mutation_allowed
+            from judge.problem_authoring.types import AuthoringError
+            try:
+                assert_mutation_allowed(self.problem_id, {'language_limits'})
+            except AuthoringError as exc:
+                raise ValidationError(exc.message) from exc
+
+    @transaction.atomic
+    def save(self, *args, **kwargs):
+        Problem.objects.select_for_update().get(pk=self.problem_id)
+        self.clean()
+        fields = ('language_id', 'time_limit', 'memory_limit')
+        previous = type(self).objects.filter(pk=self.pk).values(*fields).first() if self.pk else None
+        changed = previous is None or any(previous[name] != getattr(self, name) for name in fields)
+        result = super().save(*args, **kwargs)
+        if changed:
+            from judge.problem_authoring.revisions import invalidate_revision
+            invalidate_revision(self.problem_id, grading=True)
+        return result
+
+    def delete(self, *args, **kwargs):
+        self.clean()
+        return super().delete(*args, **kwargs)
+
     class Meta:
         unique_together = ('problem', 'language')
         verbose_name = _('language-specific resource limit')
@@ -718,6 +771,21 @@ class Solution(models.Model):
     publish_on = models.DateTimeField(verbose_name=_('publish date'))
     authors = models.ManyToManyField(Profile, verbose_name=_('authors'), blank=True)
     content = models.TextField(verbose_name=_('editorial content'), validators=[disallowed_characters_validator])
+
+    @transaction.atomic
+    def save(self, *args, **kwargs):
+        if self.problem_id:
+            Problem.objects.select_for_update().get(pk=self.problem_id)
+        fields = {'content', 'publish_on', 'is_public'}
+        if kwargs.get('update_fields'):
+            fields.intersection_update(kwargs['update_fields'])
+        previous = type(self).objects.filter(pk=self.pk).values(*fields).first() if self.pk else None
+        changed = previous is None or any(previous[name] != getattr(self, name) for name in fields)
+        result = super().save(*args, **kwargs)
+        if changed and self.problem_id:
+            from judge.problem_authoring.revisions import invalidate_revision
+            invalidate_revision(self.problem_id)
+        return result
 
     def get_absolute_url(self):
         problem = self.problem

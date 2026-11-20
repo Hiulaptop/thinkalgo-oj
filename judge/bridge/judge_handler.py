@@ -257,6 +257,14 @@ class JudgeHandler(ZlibPacketHandler):
             ))
             return
 
+        from judge.problem_authoring.policy import assert_can_submit
+        from judge.problem_authoring.types import AuthoringError
+        try:
+            assert_can_submit(pid, existing_submission_id=submission)
+        except AuthoringError:
+            logger.warning('Submission %s cannot use unavailable authoring data', submission)
+            return
+
         attempt_no = Submission.objects.filter(problem__id=pid, contest__participation__id=part_id, user__id=uid,
                                                date__lt=sub_date).exclude(status__in=('CE', 'IE')).count() + 1
 

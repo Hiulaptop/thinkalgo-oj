@@ -45,6 +45,14 @@ class DjangoHandler(ZlibPacketHandler):
         banned_judges = data['banned-judges']
         if not self.judges.check_priority(priority):
             return {'name': 'bad-request'}
+        from judge.models import Submission
+        from judge.problem_authoring.policy import assert_can_submit
+        from judge.problem_authoring.types import AuthoringError
+        try:
+            submission = Submission.objects.get(pk=id, problem__code=problem)
+            assert_can_submit(submission.problem_id, existing_submission_id=id)
+        except (Submission.DoesNotExist, AuthoringError):
+            return {'name': 'bad-request'}
         self.judges.judge(id, problem, language, source, judge_id, priority, banned_judges)
         return {'name': 'submission-received', 'submission-id': id}
 

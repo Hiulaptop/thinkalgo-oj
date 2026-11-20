@@ -8,6 +8,8 @@ from judge.models.interface import BlogPost, BlogPostTag, BlogVote, MiscConfig, 
 from judge.models.notification import Notification, make_notification
 from judge.models.problem import LanguageLimit, License, OrganizationProblemTag, Problem, ProblemClarification, \
     ProblemGroup, ProblemTranslation, ProblemType, Solution, SubmissionSourceAccess, TranslatedProblemQuerySet
+from judge.models.problem_authoring import ProblemAuthoringSave, ProblemAuthoringState, ProblemAuthoringUpload, \
+    ProblemDataOperation, ProblemReferenceRun, ProblemReferenceSource
 from judge.models.problem_data import CHECKERS, ProblemData, ProblemTestCase, problem_data_storage, \
     problem_directory_file
 from judge.models.problem_package import ProblemPackageImport

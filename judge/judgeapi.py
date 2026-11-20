@@ -54,6 +54,25 @@ def judge_request(packet, reply=True):
 
 
 def judge_submission(submission, rejudge=False, batch_rejudge=False, judge_id=None):
+    from django.db import transaction
+    from .models import Problem, ProblemAuthoringState
+    from judge.problem_authoring.policy import assert_can_submit
+    from judge.problem_authoring.types import AuthoringError
+    with transaction.atomic():
+        Problem.objects.select_for_update().get(pk=submission.problem_id)
+        list(ProblemAuthoringState.objects.select_for_update().filter(problem_id=submission.problem_id))
+        try:
+            assert_can_submit(submission.problem_id, existing_submission_id=submission.pk)
+        except AuthoringError:
+            logger.warning('Authoring readiness blocked dispatch of submission %s', submission.pk)
+            return False
+        packet = _prepare_submission(submission, rejudge, batch_rejudge, judge_id)
+    if packet is None:
+        return False
+    return _send_submission(submission, packet)
+
+
+def _prepare_submission(submission, rejudge=False, batch_rejudge=False, judge_id=None):
     from .models import ContestSubmission, Submission, SubmissionTestCase
 
     updates = {'time': None, 'memory': None, 'points': None, 'result': None, 'case_points': 0, 'case_total': 0,
@@ -76,8 +95,11 @@ def judge_submission(submission, rejudge=False, batch_rejudge=False, judge_id=No
     # as that would prevent people from knowing a submission is being scheduled for rejudging.
     # It is worth noting that this mechanism does not prevent a new rejudge from being scheduled
     # while already queued, but that does not lead to data corruption.
-    if not Submission.objects.filter(id=submission.id).exclude(status__in=('P', 'G')).update(**updates):
-        return False
+    candidates = Submission.objects.filter(id=submission.id).exclude(status__in=('P', 'G'))
+    if Submission.objects.filter(pk=submission.pk, problemreferencerun__isnull=False).exists():
+        candidates = candidates.filter(status='QU')
+    if not candidates.update(**updates):
+        return None
 
     SubmissionTestCase.objects.filter(submission_id=submission.id).delete()
 
@@ -90,26 +112,32 @@ def judge_submission(submission, rejudge=False, batch_rejudge=False, judge_id=No
         if participation.live or participation.spectate:
             banned_judges = list(participation.contest.banned_judges.values_list('name', flat=True))
 
+    return {
+        'name': 'submission-request',
+        'submission-id': submission.id,
+        'problem-id': submission.problem.code,
+        'language': submission.language.key,
+        'source': submission.source.source,
+        'judge-id': judge_id,
+        'banned-judges': banned_judges,
+        'priority': BATCH_REJUDGE_PRIORITY if batch_rejudge else (REJUDGE_PRIORITY if rejudge else priority),
+    }
+
+
+def _send_submission(submission, packet):
+    from .models import Submission
     try:
-        response = judge_request({
-            'name': 'submission-request',
-            'submission-id': submission.id,
-            'problem-id': submission.problem.code,
-            'language': submission.language.key,
-            'source': submission.source.source,
-            'judge-id': judge_id,
-            'banned-judges': banned_judges,
-            'priority': BATCH_REJUDGE_PRIORITY if batch_rejudge else (REJUDGE_PRIORITY if rejudge else priority),
-        })
+        response = judge_request(packet)
     except BaseException:
         logger.exception('Failed to send request to judge')
-        Submission.objects.filter(id=submission.id).update(status='IE', result='IE')
+        if not Submission.objects.filter(pk=submission.id, problemreferencerun__isnull=False).exists():
+            Submission.objects.filter(id=submission.id, status='QU').update(status='IE', result='IE')
         success = False
     else:
-        if response['name'] != 'submission-received' or response['submission-id'] != submission.id:
-            Submission.objects.filter(id=submission.id).update(status='IE', result='IE')
+        success = response.get('name') == 'submission-received' and response.get('submission-id') == submission.id
+        if not success:
+            Submission.objects.filter(id=submission.id, status='QU').update(status='IE', result='IE')
         _post_update_submission(submission)
-        success = True
     return success
 
 

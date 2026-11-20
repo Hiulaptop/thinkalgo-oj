@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% block media %}
+    {{ form.media.css }}
+    <link rel="stylesheet" href="{{ static('ui_form.css') }}">
+    <style>
+        .problem-authoring { max-width: 1200px; margin: auto; padding: 16px; }
+        .problem-authoring section { margin-bottom: 32px; padding-bottom: 24px; border-bottom: 1px solid var(--color-pencil-gray, #b6b6b6); }
+        .problem-authoring input, .problem-authoring textarea, .problem-authoring select { max-width: 100%; box-sizing: border-box; }
+        .authoring-tests-preview { max-height: 320px; overflow: auto; }
+        .problem-authoring td { min-width: 0; overflow-wrap: anywhere; }
+        @media (max-width: 640px) {
+            .problem-authoring table, .problem-authoring tbody, .problem-authoring tr,
+            .problem-authoring th, .problem-authoring td { display: block; width: 100%; box-sizing: border-box; }
+        }
+    </style>
+{% endblock %}
+{% block js_media %}
+    {{ form.media.js }}
+    {% include "leave-warning.html" %}
+    <script src="{{ static('problem-authoring.js') }}" defer></script>
+{% endblock %}
+{% block body %}
+<div class="problem-authoring"{% if problem %} data-authoring-status-url="{{ url('problem_edit', problem.code) }}?status=1" data-authoring-revision="{{ authoring_state.revision if authoring_state else 0 }}"{% endif %}>
+    {% if problem %}<p data-authoring-live-status aria-live="polite"></p>{% endif %}
+    <p>Đề bài, editorial và bộ test được lưu trong cùng trình soạn. Lưu nháp không tự chấm hoặc công khai.</p>
+    {% if organization %}<p>Phạm vi tổ chức: <strong>{{ organization.name }}</strong></p>{% endif %}
+    {% if authoring_state %}
+        <section aria-live="polite">
+            <h2>Trạng thái</h2>
+            <p>Đã lưu · Phiên bản {{ authoring_state.revision }} · Dữ liệu: {{ authoring_state.data_state }}</p>
+            {% if authoring_state.current_operation and authoring_state.current_operation.safe_error %}
+                <p role="alert">{{ authoring_state.current_operation.safe_error }}</p>
+            {% endif %}
+            {% if reference_run %}
+                <p>Kiểm chứng: {{ reference_run.state }}
+                    {% if reference_run.submission %} · {{ reference_run.submission.result or reference_run.submission.status }}{% endif %}
+                    {% if reference_run.grading_revision != authoring_state.grading_revision %} · Kết quả thuộc phiên bản cũ{% endif %}
+                </p>
+            {% else %}<p>Kiểm chứng: chưa chạy</p>{% endif %}
+        </section>
+    {% endif %}
+    {% if saved_uploads %}
+        <details>
+            <summary>Tệp đã lưu (chỉ người có quyền sửa được tải)</summary>
+            <ul>{% for upload in saved_uploads %}
+                <li><a href="{{ url('problem_authoring_download', upload.pk) }}">{{ upload.kind }} · {{ upload.created }}</a></li>
+            {% endfor %}</ul>
+        </details>
+    {% endif %}
+    <form method="post" enctype="multipart/form-data" class="form-area">
+        {% csrf_token %}
+        <input type="hidden" name="editorial_authors_present" value="1">
+        {% if form.errors %}<div role="alert">{{ form.non_field_errors() }}<p>Kiểm tra các trường bị lỗi bên dưới.</p></div>{% endif %}
+        {% for hidden in form.hidden_fields() %}{{ hidden }}{{ hidden.errors }}{% endfor %}
+        {% if capabilities.package %}
+            <section>
+                <h2>Điền từ ZIP trọn gói</h2>
+                {% if legacy_package_id %}
+                    <p>Bản ZIP cũ chưa được chuyển. Thao tác này không tạo bài hoặc chạy kiểm chứng.</p>
+                    <input type="hidden" name="legacy_package_id" value="{{ legacy_package_id }}">
+                    <button name="action" value="adopt_legacy" type="submit" formnovalidate>Chuyển bản ZIP cũ vào trình soạn</button>
+                {% endif %}
+                <p>statement.md, editorial.md, solution.cpp, tests/*.in và tests/*.out. Chỉ statement.md bắt buộc.</p>
+                <p>{{ form.package_file.label_tag() }} {{ form.package_file }} {{ form.package_file.errors }}</p>
+                <button name="action" value="upload_package" type="submit" formnovalidate>Xem trước ZIP</button>
+                {% if form.package_upload_id.value() %}
+                    <p>Chọn rõ các phần muốn thay thế; những phần còn lại giữ nguyên.</p>
+                    {% for name in ['replace_statement', 'replace_editorial', 'replace_tests', 'replace_reference'] %}
+                        <p>{{ form[name] }} {{ form[name].label_tag() }}</p>
+                    {% endfor %}
+                    <button name="action" value="apply_package" type="submit" formnovalidate>Xác nhận áp dụng các phần đã chọn</button>
+                {% endif %}
+            </section>
+        {% endif %}
+        {% if upload_preview %}
+            <section aria-live="polite">
+                <p>Đã nhận {{ upload_preview.manifest.tests|length }} cặp test. Chưa thay bộ test đang hoạt động cho đến khi lưu và chuẩn bị thành công.</p>
+                <details><summary>Danh sách cặp test</summary>
+                    <div class="authoring-tests-preview"><ol>
+                    {% for case in upload_preview.manifest.tests %}<li>{{ case.input_file }} ↔ {{ case.output_file }}</li>{% endfor %}
+                    </ol></div>
+                </details>
+            </section>
+        {% endif %}
+        {% set sections = [
+            ('Thông tin bài', ['code', 'name', 'time_limit', 'memory_mb', 'points', 'partial', 'group', 'types', 'tags', 'source', 'testers', 'allowed_languages', 'submission_source_visibility_mode', 'testcase_visibility_mode']),
+            ('Đề bài', ['description', 'statement_file']),
+            ('Editorial', ['editorial', 'editorial_authors', 'editorial_is_public', 'editorial_publish_on']),
+            ('Bộ test', ['tests_file', 'checker', 'test_points']),
+            ('Lời giải chuẩn (không bắt buộc)', ['reference_file', 'reference_language'])
+        ] %}
+        {% for heading, names in sections %}
+            <section>
+                <h2>{{ heading }}</h2>
+                {% if heading == 'Bộ test' %}<p>ZIP gồm các cặp .in/.out. Có thể lưu nháp trước khi có test. Cấu hình phức tạp dùng trang dữ liệu nâng cao.</p>{% endif %}
+                <table class="django-as-table">
+                    {% for name in names %}
+                        {% if name in form.fields and (name != 'statement_file' or capabilities.pdf) %}
+                            <tr><th>{{ form[name].label_tag() }}</th><td>{{ form[name] }}{{ form[name].errors }}
+                                {% if form[name].help_text %}<div class="helptext">{{ form[name].help_text|safe }}</div>{% endif %}
+                            </td></tr>
+                        {% endif %}
+                    {% endfor %}
+                </table>
+                {% if heading == 'Bộ test' %}<button name="action" value="upload_tests" type="submit" formnovalidate>Kiểm tra ZIP test</button>{% endif %}
+            </section>
+        {% endfor %}
+        {% if testcase_forms %}
+            <section>
+                <h2>Các test đã chọn</h2>
+                <p>Chỉnh thứ tự, trọng số và pretest trước khi lưu. Trọng số riêng ưu tiên hơn trọng số chung.</p>
+                <button name="action" value="apply_test_points" type="submit" formnovalidate>Áp dụng trọng số chung cho tất cả test</button>
+                {{ testcase_forms.management_form }}
+                {{ testcase_forms.non_form_errors() }}
+                <div class="authoring-tests-preview">
+                    <table class="django-as-table">
+                        <thead><tr><th>Cặp test</th><th>Thứ tự</th><th>Trọng số</th><th>Pretest</th></tr></thead>
+                        <tbody>{% for case_form in testcase_forms %}
+                            <tr><td>{{ case_form.input_file }}{{ case_form.output_file }}
+                                {{ case_form.input_file.value() }} ↔ {{ case_form.output_file.value() }}
+                                {{ case_form.non_field_errors() }}{{ case_form.input_file.errors }}{{ case_form.output_file.errors }}</td>
+                                <td>{{ case_form.order }}{{ case_form.order.errors }}</td>
+                                <td>{{ case_form.points }}{{ case_form.points.errors }}</td>
+                                <td>{{ case_form.is_pretest }}{{ case_form.is_pretest.errors }}</td></tr>
+                        {% endfor %}</tbody>
+                    </table>
+                </div>
+            </section>
+        {% endif %}
+        <section>
+            <h2>Giới hạn theo ngôn ngữ</h2>
+            {{ language_limit_formset.management_form }}
+            {{ language_limit_formset.non_form_errors() }}
+            <table class="django-as-table">{{ language_limit_formset.as_table() }}</table>
+        </section>
+        <p><button name="action" value="save_draft" type="submit">Lưu nháp</button></p>
+        {% if problem %}
+            <p><a href="{{ url('problem_detail', problem.code) }}">Xem bài</a> · <a href="{{ url('problem_data', problem.code) }}">Dữ liệu nâng cao</a></p>
+            <button name="action" value="verify" type="submit" formnovalidate>Chấm lời giải chuẩn đã lưu</button>
+            {% if authoring_state and authoring_state.current_operation and authoring_state.data_state == 'FAILED' %}
+                <button name="action" value="retry_data" type="submit" formnovalidate>Thử lại chuẩn bị test</button>
+            {% endif %}
+            {% if reference_run and reference_run.state == 'FAILED' %}<button name="action" value="retry_verification" type="submit" formnovalidate>Thử lại kiểm chứng</button>{% endif %}
+            {% if capabilities.publish %}
+                <p>{{ form.accept_unverified }} {{ form.accept_unverified.label_tag() }}</p>
+                <button name="action" value="publish" type="submit" formnovalidate>Công khai phiên bản đã lưu</button>
+            {% endif %}
+            <p>Các thao tác chấm và công khai dùng dữ liệu đã lưu; hãy lưu chỉnh sửa trước.</p>
+        {% endif %}
+    </form>
+</div>
+{% endblock %}

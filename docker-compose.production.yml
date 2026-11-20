@@ -120,6 +120,12 @@ services:
     container_name: thinkcode-celery
     command: celery -A dmoj_celery worker -l info --concurrency=2
 
+  authoring-beat:
+    <<: *common
+    profiles: [authoring]
+    container_name: thinkcode-authoring-beat
+    command: celery -A dmoj_celery beat -l info --schedule=/tmp/authoring-celerybeat
+
   wsevent:
     <<: *common
     container_name: thinkcode-wsevent

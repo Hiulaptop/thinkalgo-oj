@@ -146,6 +146,11 @@ services:
       retries: 5
       start_period: 20s
 
+  authoring-beat:
+    <<: *common
+    profiles: [authoring]
+    command: celery -A dmoj_celery beat -l info --schedule=/tmp/authoring-celerybeat
+
   bridged:
     <<: *common
     container_name: thinkcode-dev-bridged

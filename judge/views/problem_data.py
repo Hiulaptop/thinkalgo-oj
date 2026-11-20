@@ -233,6 +233,9 @@ class ProblemDataView(TitleMixin, ProblemManagerMixin):
             context['testcase_soft_limit'] = settings.VNOJ_TESTCASE_SOFT_LIMIT
 
         problem = self.object
+        from judge.models import ProblemAuthoringState
+        authoring = ProblemAuthoringState.objects.filter(problem=problem).first()
+        context['authoring_revision'] = authoring.revision if authoring else 0
         if problem.is_organization_private and problem.organization:
             add_quota_context(problem.organization, context)
 
@@ -271,12 +274,44 @@ class ProblemDataView(TitleMixin, ProblemManagerMixin):
     def post(self, request, *args, **kwargs):
         self.object = problem = self.get_object()
         from judge.utils.problem_package_guards import assert_package_mutable
-        assert_package_mutable(problem.pk)
+        from judge.problem_authoring.policy import assert_mutation_allowed
+        from judge.problem_authoring.types import AuthoringError
+        try:
+            assert_package_mutable(problem.pk)
+            assert_mutation_allowed(problem.pk, {'tests'})
+        except (ValidationError, AuthoringError) as exc:
+            return generic_message(request, _('Test data unavailable'), str(exc), status=409)
         data_form = self.get_data_form(post=True)
         valid_files = self.get_valid_files(data_form.instance, post=True)
         data_form.zip_valid = valid_files is not False
         cases_formset = self.get_case_formset(valid_files, post=True)
         if self.check_valid(data_form, cases_formset):
+            from judge.models import ProblemAuthoringState
+            if (getattr(settings, 'PROBLEM_AUTHORING_ENABLED', False) or
+                    ProblemAuthoringState.objects.filter(problem=problem).exists()):
+                from judge.problem_authoring.advanced import begin_external_data_change
+                from judge.problem_authoring.types import AuthoringContext
+                try:
+                    cases = []
+                    for form in cases_formset.forms:
+                        if form.cleaned_data and not form.cleaned_data.get('DELETE'):
+                            cases.append(form.save(commit=False))
+                    data = data_form.save(commit=False)
+                    files = {name: data_form.cleaned_data[name] for name in
+                             ('zipfile', 'custom_checker', 'custom_grader', 'custom_header')
+                             if name in data_form.changed_data}
+                    begin_external_data_change(
+                        AuthoringContext(request.user.pk, problem.organization_id), problem.pk,
+                        expected_revision=int(request.POST.get('authoring_revision', '0')),
+                        data=data, cases=cases, files=files,
+                    )
+                    return HttpResponseRedirect(request.get_full_path())
+                except (AuthoringError, ValueError, OSError) as exc:
+                    message = exc.message if isinstance(exc, AuthoringError) else 'Unable to stage test data.'
+                    data_form.add_error(None, message)
+                    return self.render_to_response(self.get_context_data(
+                        data_form=data_form, cases_formset=cases_formset, valid_files=valid_files,
+                    ))
             data = data_form.save()
             for case in cases_formset.save(commit=False):
                 case.dataset_id = problem.id
