@@ -7,15 +7,15 @@ from django.contrib.flatpages.models import FlatPage
 from django.core.cache import cache
 from django.core.cache.utils import make_template_fragment_key
 from django.db import transaction
-from django.db.models.signals import m2m_changed, post_delete, post_save
+from django.db.models.signals import m2m_changed, post_delete, post_save, pre_delete
 from django.dispatch import receiver
 from registration.models import RegistrationProfile
 from registration.signals import user_registered
 
 from judge.caching import finished_submission
 from judge.models import BlogPost, Comment, Contest, ContestAnnouncement, ContestProblem, ContestSubmission, \
-    EFFECTIVE_MATH_ENGINES, Judge, Language, License, MiscConfig, Organization, Problem, Profile, Submission, \
-    WebAuthnCredential
+    EFFECTIVE_MATH_ENGINES, Judge, Language, LanguageLimit, License, MiscConfig, Organization, Problem, Profile, \
+    Solution, Submission, WebAuthnCredential
 from judge.tasks import on_new_comment
 from judge.views.register import RegistrationView
 
@@ -33,6 +33,97 @@ def unlink_if_exists(file):
     except OSError as e:
         if e.errno != errno.ENOENT:
             raise
+
+
+@receiver(m2m_changed, sender=Problem.allowed_languages.through)
+def problem_authoring_languages_guard(sender, instance, action, reverse, pk_set, **kwargs):
+    if action not in ('pre_add', 'pre_remove', 'pre_clear'):
+        return
+    from django.core.exceptions import ValidationError
+    from judge.problem_authoring.policy import assert_mutation_allowed
+    from judge.problem_authoring.types import AuthoringError
+    if reverse:
+        ids = pk_set if pk_set is not None else instance.problem_set.values_list('pk', flat=True)
+    else:
+        ids = [instance.pk]
+    try:
+        ids = sorted(ids)
+        list(Problem.objects.select_for_update().filter(pk__in=ids).order_by('pk'))
+        instance._authoring_language_changes = []
+        for problem_id in ids:
+            assert_mutation_allowed(problem_id, {'allowed_languages'})
+            relation = Problem.allowed_languages.through.objects.filter(problem_id=problem_id)
+            if reverse:
+                relation = relation.filter(language_id=instance.pk)
+            elif pk_set is not None:
+                relation = relation.filter(language_id__in=pk_set)
+            changed = bool(pk_set) if action == 'pre_add' else relation.exists()
+            if changed:
+                instance._authoring_language_changes.append(problem_id)
+    except AuthoringError as exc:
+        raise ValidationError(exc.message) from exc
+
+
+@receiver(m2m_changed, sender=Problem.allowed_languages.through)
+def problem_authoring_languages_revision(sender, instance, action, **kwargs):
+    if action in ('post_add', 'post_remove', 'post_clear'):
+        from judge.problem_authoring.revisions import invalidate_revision
+        for problem_id in getattr(instance, '_authoring_language_changes', []):
+            invalidate_revision(problem_id, grading=True)
+        instance._authoring_language_changes = []
+
+
+@receiver(pre_delete, sender=LanguageLimit)
+def authoring_language_limit_delete_guard(sender, instance, origin=None, **kwargs):
+    if isinstance(origin, Problem):
+        return
+    list(Problem.objects.select_for_update().filter(pk=instance.problem_id))
+    instance.clean()
+
+
+@receiver(post_delete, sender=LanguageLimit)
+def authoring_language_limit_delete_revision(sender, instance, origin=None, **kwargs):
+    if isinstance(origin, Problem):
+        return
+    from judge.problem_authoring.revisions import invalidate_revision
+    invalidate_revision(instance.problem_id, grading=True)
+
+
+@receiver(pre_delete, sender=Solution)
+def authoring_editorial_delete_lock(sender, instance, **kwargs):
+    list(Problem.objects.select_for_update().filter(pk=instance.problem_id))
+
+
+@receiver(post_delete, sender=Solution)
+def authoring_editorial_delete_revision(sender, instance, **kwargs):
+    from judge.problem_authoring.revisions import invalidate_revision
+    invalidate_revision(instance.problem_id)
+
+
+@receiver(m2m_changed, sender=Solution.authors.through)
+def authoring_editorial_authors_revision(sender, instance, action, reverse, pk_set, **kwargs):
+    from judge.problem_authoring.revisions import invalidate_revision
+    if action in ('pre_add', 'pre_remove', 'pre_clear'):
+        if reverse:
+            solutions = Solution.objects.filter(pk__in=pk_set) if pk_set is not None else instance.solution_set.all()
+        else:
+            solutions = Solution.objects.filter(pk=instance.pk)
+        problem_ids = sorted(solutions.values_list('problem_id', flat=True))
+        list(Problem.objects.select_for_update().filter(pk__in=problem_ids).order_by('pk'))
+        relation = Solution.authors.through.objects.filter(solution_id__in=solutions.values('pk'))
+        if reverse:
+            relation = relation.filter(profile_id=instance.pk)
+        elif pk_set is not None:
+            relation = relation.filter(profile_id__in=pk_set)
+        if action == 'pre_add':
+            changed = problem_ids if pk_set else []
+        else:
+            changed = sorted(set(relation.values_list('solution__problem_id', flat=True)))
+        instance._authoring_editorial_changes = changed
+    elif action in ('post_add', 'post_remove', 'post_clear'):
+        for problem_id in getattr(instance, '_authoring_editorial_changes', []):
+            invalidate_revision(problem_id)
+        instance._authoring_editorial_changes = []
 
 
 @receiver(post_save, sender=Problem)

@@ -6,7 +6,7 @@ from django.test import TestCase, override_settings
 from judge.models import Language, Problem, ProblemGroup, ProblemType
 from judge.models.tests.util import create_user
 from judge.tests.test_problem_package_parser import make_package
-from judge.utils.problem_package_import import create_draft, confirm_import
+from judge.utils.problem_package_import import confirm_import, create_draft
 
 
 class PackageImportTest(TestCase):
@@ -61,6 +61,21 @@ class PackageImportTest(TestCase):
         self.assertEqual(record.problem.memory_limit, 524288)
         self.assertTrue(record.problem.data_files.has_yml())
 
+    def test_legacy_editor_get_does_not_finalize_reference_run(self):
+        from judge.models import ProblemPackageImport, Submission
+        problem = Problem.objects.create(code='readonlylegacy', name='Legacy', group=self.group,
+                                         time_limit=1, memory_limit=262144, points=100)
+        submission = Submission.objects.create(problem=problem, user=self.user.profile,
+                                               language=self.language, status='D', result='AC')
+        record = ProblemPackageImport.objects.create(owner=self.user.profile, problem=problem,
+                                                     submission=submission, state='JUDGING')
+        self.client.force_login(self.user)
+        with override_settings(PROBLEM_AUTHORING_ENABLED=False):
+            response = self.client.get('/problem/readonlylegacy/edit')
+        self.assertEqual(response.status_code, 200)
+        record.refresh_from_db()
+        self.assertEqual(record.state, 'JUDGING')
+
     def test_upload_page(self):
         self.client.force_login(self.user)
         response = self.client.get('/problems/import-zip/', follow=True)
@@ -82,6 +97,12 @@ class PackageImportTest(TestCase):
         self.assertEqual(response.context['form']['name'].value(), 'Các số phân biệt')
         self.assertEqual(response.context['form']['memory_limit'].value(), 524288)
         self.assertEqual(response.context['solution_formset'].forms[0]['content'].value(), '# Lời giải')
+
+    def test_missing_zip_returns_form_error(self):
+        self.client.force_login(self.user)
+        response = self.client.post('/problems/create', {'action': 'load_package'})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Choose a ZIP file.')
 
     def test_preview_page(self):
         record = create_draft(self.user, make_package())

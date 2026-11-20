@@ -8,7 +8,7 @@ from random import randrange
 
 from django.conf import settings
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
-from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
+from django.core.exceptions import ObjectDoesNotExist, PermissionDenied, ValidationError
 from django.db import transaction
 from django.db.models import BooleanField, Case, Prefetch, Q, When
 from django.db.utils import ProgrammingError
@@ -337,6 +337,12 @@ class ProblemSubmitMixin:
         }
 
     def handle_submission_post(self, request):
+        from judge.problem_authoring.policy import assert_can_submit
+        from judge.problem_authoring.types import AuthoringError
+        try:
+            assert_can_submit(self.object.pk)
+        except AuthoringError as exc:
+            return generic_message(request, _('Test data unavailable'), exc.message, status=409), None
         form = self.get_submit_form()
 
         if not form.is_valid():
@@ -974,7 +980,8 @@ class ProblemCreate(PermissionRequiredMixin, TitleMixin, CreateView):
                 })
                 for name in ('code', 'points', 'source', 'group', 'types', 'testers'):
                     if name in request.POST:
-                        initial[name] = request.POST.getlist(name) if name in ('types', 'testers') else request.POST[name]
+                        initial[name] = (request.POST.getlist(name) if name in ('types', 'testers') else
+                                         request.POST[name])
                 form = self.form_class(user=request.user, initial=initial)
             except (ValidationError, PackageValidationError, OSError) as exc:
                 form = self.get_form()
@@ -993,7 +1000,8 @@ class ProblemCreate(PermissionRequiredMixin, TitleMixin, CreateView):
         valid = form.is_valid()
         valid = self.package_solutions.is_valid() and valid
         language_id = request.POST.get('reference_language', '')
-        language = Language.objects.filter(key__startswith='CPP', pk=language_id).first() if language_id.isdigit() else None
+        language = (Language.objects.filter(key__startswith='CPP', pk=language_id).first()
+                    if language_id.isdigit() else None)
         if not language:
             form.add_error(None, 'Choose a C++ runtime for the reference solution.')
             valid = False
@@ -1118,8 +1126,10 @@ class ProblemImportPolygon(PermissionRequiredMixin, TitleMixin, FormView):
                     config=config,
                 )
                 importer.run()
-                from judge.utils.problem_releases import publish_problem_to_r2
-                publish_problem_to_r2(code)
+                from judge.models import ProblemAuthoringState
+                if not ProblemAuthoringState.objects.filter(problem__code=code).exists():
+                    from judge.utils.problem_releases import publish_problem_to_r2
+                    publish_problem_to_r2(code)
             except ImportPolygonError as e:
                 return generic_message(request, _('Failed to import problem'), str(e), status=400)
             except Exception as e:
@@ -1193,9 +1203,6 @@ class ProblemEdit(ProblemMixin, TitleMixin, UpdateView):
         data['organization'] = self.object.organization
         from judge.models import ProblemPackageImport
         record = ProblemPackageImport.objects.select_related('submission').filter(problem=self.object).first()
-        if record and record.state == 'JUDGING' and record.submission and record.submission.status in ('D', 'CE', 'IE', 'AB'):
-            ProblemPackageImport.objects.filter(pk=record.pk, state='JUDGING').update(state='FINISHED')
-            record.state = 'FINISHED'
         data['package_import'] = record
         return data
 

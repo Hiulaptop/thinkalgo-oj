@@ -1,10 +1,12 @@
 from operator import attrgetter
 
 from django import forms
+from django.conf import settings
 from django.contrib import admin
 from django.db import transaction
 from django.forms import ModelForm
-from django.urls import reverse_lazy
+from django.http import HttpResponseRedirect
+from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.utils.html import format_html
 from django.utils.translation import gettext, gettext_lazy as _, ngettext
@@ -30,6 +32,20 @@ class ProblemForm(ModelForm):
         self.fields['change_message'].widget.attrs.update({
             'placeholder': gettext('Describe the changes you made (optional)'),
         })
+
+    def clean(self):
+        cleaned = super().clean()
+        if self.instance.pk:
+            from django.core.exceptions import ValidationError
+            from judge.problem_authoring.policy import assert_can_submit, assert_mutation_allowed
+            from judge.problem_authoring.types import AuthoringError
+            try:
+                assert_mutation_allowed(self.instance.pk, set(self.changed_data))
+                if 'is_public' in self.changed_data and cleaned.get('is_public'):
+                    assert_can_submit(self.instance.pk)
+            except AuthoringError as exc:
+                raise ValidationError(exc.message) from exc
+        return cleaned
 
     class Meta:
         widgets = {
@@ -147,6 +163,14 @@ class ProblemAdmin(AdminFastPaginationMixin, NoBatchDeleteMixin, VersionAdmin):
     form = ProblemForm
     date_hierarchy = 'date'
 
+    def add_view(self, request, form_url='', extra_context=None):
+        if getattr(settings, 'PROBLEM_AUTHORING_ENABLED', False):
+            from django.core.exceptions import PermissionDenied
+            if not self.has_add_permission(request):
+                raise PermissionDenied
+            return HttpResponseRedirect(reverse('problem_create'))
+        return super().add_view(request, form_url, extra_context)
+
     def get_actions(self, request):
         actions = super(ProblemAdmin, self).get_actions(request)
 
@@ -185,9 +209,23 @@ class ProblemAdmin(AdminFastPaginationMixin, NoBatchDeleteMixin, VersionAdmin):
 
     @admin.display(description=_('Mark problems as public and set publish date to now'))
     def make_public_and_update_publish_date(self, request, queryset):
-        count = queryset.update(is_public=True, date=timezone.now())
-        for problem_id in queryset.values_list('id', flat=True):
-            self._rescore(request, problem_id)
+        from judge.problem_authoring.policy import publish_problem
+        from judge.problem_authoring.types import AuthoringContext, AuthoringError
+        count = 0
+        for problem in queryset:
+            if hasattr(problem, 'authoring_state'):
+                try:
+                    publish_problem(AuthoringContext(request.user.pk, problem.organization_id), problem.pk,
+                                    expected_revision=problem.authoring_state.revision, accept_unverified=False)
+                except AuthoringError as exc:
+                    self.message_user(request, '%s: %s' % (problem.code, exc.message), level='warning')
+                    continue
+            else:
+                problem.is_public = True
+                problem.date = timezone.now()
+                problem.save(update_fields=['is_public', 'date'])
+            count += 1
+            self._rescore(request, problem.pk)
 
         self.message_user(request, ngettext('%d problem successfully marked as public.',
                                             '%d problems successfully marked as public.',
@@ -201,6 +239,17 @@ class ProblemAdmin(AdminFastPaginationMixin, NoBatchDeleteMixin, VersionAdmin):
         self.message_user(request, ngettext('%d problem successfully marked as private.',
                                             '%d problems successfully marked as private.',
                                             count) % count)
+
+    def change_view(self, request, object_id, form_url='', extra_context=None):
+        context = dict(extra_context or {})
+        if getattr(settings, 'PROBLEM_AUTHORING_ENABLED', False):
+            problem = self.get_object(request, object_id)
+            if problem is not None and self.has_change_permission(request, problem):
+                from django.contrib import messages
+                messages.info(request, format_html('<a href="{}">{}</a>',
+                                                   reverse('problem_edit', args=[problem.code]),
+                                                   gettext('Open shared problem editor')))
+        return super().change_view(request, object_id, form_url, context)
 
     def get_queryset(self, request):
         editable_ids = Problem.get_editable_problems(request.user).values('id')
@@ -228,6 +277,12 @@ class ProblemAdmin(AdminFastPaginationMixin, NoBatchDeleteMixin, VersionAdmin):
 
     def save_model(self, request, obj, form, change):
         super(ProblemAdmin, self).save_model(request, obj, form, change)
+        if change and form.changed_data:
+            from django.db.models import F
+            from judge.models import ProblemAuthoringState
+            concrete = {field.name for field in obj._meta.concrete_fields}
+            if set(form.changed_data) - concrete - {'allowed_languages'}:
+                ProblemAuthoringState.objects.filter(problem=obj).update(revision=F('revision') + 1)
         if (
             form.changed_data and
             any(f in form.changed_data for f in ('is_public', 'is_organization_private', 'partial'))

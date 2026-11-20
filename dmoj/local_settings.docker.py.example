@@ -85,6 +85,8 @@ DMOJ_CANONICAL = os.environ.get('DMOJ_CANONICAL', 'oj.thinkcode.vn')
 
 MEDIA_ROOT = os.environ.get('MEDIA_ROOT', '/media')
 DMOJ_PROBLEM_DATA_ROOT = os.environ.get('DMOJ_PROBLEM_DATA_ROOT', '/problems')
+PROBLEM_AUTHORING_ENABLED = os.environ.get('PROBLEM_AUTHORING_ENABLED', 'False') == 'True'
+PROBLEM_AUTHORING_ROOT = os.environ.get('PROBLEM_AUTHORING_ROOT', '/private-problem-imports/authoring')
 
 USE_R2_MEDIA = os.environ.get('USE_R2_MEDIA', 'False') == 'True'
 if USE_R2_MEDIA:

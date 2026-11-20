@@ -115,6 +115,14 @@ VNOJ_CONTEST_DURATION_LIMIT = 14
 # Maximum number of test cases that a user can create for a problem
 # without the `create_mass_testcases` permission
 VNOJ_TESTCASE_HARD_LIMIT = 100
+PROBLEM_AUTHORING_ENABLED = False
+PROBLEM_AUTHORING_UPLOAD_LIMIT = 100 * 1024**2
+PROBLEM_AUTHORING_EXPANDED_LIMIT = 1024**3
+PROBLEM_AUTHORING_ENTRY_LIMIT = 10000
+PROBLEM_AUTHORING_TEXT_LIMIT = 5 * 1024**2
+PROBLEM_AUTHORING_TEST_FILE_LIMIT = 256 * 1024**2
+PROBLEM_AUTHORING_OWNER_UPLOAD_LIMIT = 200 * 1024**2
+PROBLEM_AUTHORING_REPLACEMENT_BUDGET = 100 * 1024**2
 # If a user without the `create_mass_testcases` permission create more than this amount of test
 # they will receive a warning
 VNOJ_TESTCASE_SOFT_LIMIT = 50
@@ -184,7 +192,7 @@ CELERY_TIMEZONE = 'UTC'
 
 # Some problems have a lot of testcases, and each testcase
 # has about 5~6 fields, so we need to raise this
-DATA_UPLOAD_MAX_NUMBER_FIELDS = 3000
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 31000
 
 # List of online judge preset for OJ API
 OJ_PROBLEM_PRESET = [

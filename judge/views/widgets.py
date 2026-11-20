@@ -50,10 +50,27 @@ def django_uploader(image):
     return json.dumps({'status': 200, 'name': '', 'link': urljoin(url_base, name)})
 
 
-def pdf_statement_uploader(statement):
+def pdf_statement_uploader(statement, *, authoring_id=None):
     ext = os.path.splitext(statement.name)[1]
-    name = str(uuid.uuid4()) + ext
-    default_storage.save(os.path.join(settings.PDF_STATEMENT_UPLOAD_MEDIA_DIR, name), statement)
+    name = ('authoring-' + uuid.UUID(str(authoring_id)).hex + '.pdf') if authoring_id else str(uuid.uuid4()) + ext
+    path = os.path.join(settings.PDF_STATEMENT_UPLOAD_MEDIA_DIR, name)
+    if authoring_id and default_storage.exists(path):
+        import hashlib
+        expected = hashlib.sha256()
+        statement.seek(0)
+        for chunk in iter(lambda: statement.read(65536), b''):
+            expected.update(chunk)
+        actual = hashlib.sha256()
+        with default_storage.open(path, 'rb') as stored:
+            for chunk in iter(lambda: stored.read(65536), b''):
+                actual.update(chunk)
+        if expected.digest() != actual.digest():
+            raise ValueError('Stored PDF differs from its staged attachment.')
+    else:
+        saved = default_storage.save(path, statement)
+        if saved != path:
+            default_storage.delete(saved)
+            raise ValueError('PDF storage changed the reserved file name.')
     url_base = getattr(settings, 'PDF_STATEMENT_UPLOAD_URL_PREFIX',
                        urljoin(settings.MEDIA_URL, settings.PDF_STATEMENT_UPLOAD_MEDIA_DIR))
     if not url_base.endswith('/'):

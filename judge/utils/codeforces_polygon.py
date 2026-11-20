@@ -19,6 +19,7 @@ from lxml import etree as ET
 
 from judge.models import Language, Problem, ProblemData, ProblemGroup, ProblemTestCase, ProblemTranslation, \
     ProblemType, Profile, Solution
+from judge.problem_authoring.revisions import manages_revision
 from judge.utils.problem_data import ProblemDataCompiler
 from judge.views.widgets import django_uploader
 
@@ -909,8 +910,74 @@ class PolygonImporter:
 </blockquote>
 """
 
+    def _stage_authoring_data(self, problem):
+        from contextlib import ExitStack
+        from django.core.files.uploadedfile import UploadedFile
+        from judge.models import ProblemAuthoringState
+        from judge.problem_authoring.advanced import begin_external_data_change
+        from judge.problem_authoring.types import AuthoringContext, AuthoringError
+        actors = self.meta['authors'] + self.meta['curators']
+        actor = next((profile for profile in actors if problem.is_editable_by(profile.user)), None)
+        if actor is None:
+            raise ImportPolygonError('An authorized author or curator is required for staged Polygon import.')
+        cases = []
+        for batch in self.meta['batches'].values():
+            if not batch['cases']:
+                continue
+            cases.append(ProblemTestCase(type='S', points=batch['points'], is_pretest=False))
+            for index in batch['cases']:
+                values = self.meta['cases_data'][index]
+                cases.append(ProblemTestCase(type='C', input_file=values['input_file'],
+                                             output_file=values['output_file'], is_pretest=False))
+            cases.append(ProblemTestCase(type='E', is_pretest=False))
+        for index in self.meta['normal_cases']:
+            values = self.meta['cases_data'][index]
+            cases.append(ProblemTestCase(type='C', input_file=values['input_file'], output_file=values['output_file'],
+                                         points=values['points'], is_pretest=False))
+        for order, case in enumerate(cases, 1):
+            case.dataset = problem
+            case.order = order
+        if cases and not self.meta['partial']:
+            cases[-1].points = 1
+        data = ProblemData(problem=problem, grader=self.meta['grader'], checker=self.meta['checker'],
+                           grader_args=json.dumps(self.meta['grader_args']),
+                           checker_args=json.dumps(self.meta.get('checker_args', {})))
+        state = ProblemAuthoringState.objects.filter(problem=problem).first()
+        with ExitStack() as stack:
+            files = {}
+            for field in ('zipfile', 'custom_checker', 'custom_grader'):
+                if field in self.meta:
+                    source = stack.enter_context(open(self.meta[field], 'rb'))
+                    files[field] = UploadedFile(source, name=os.path.basename(self.meta[field]),
+                                                size=os.fstat(source.fileno()).st_size)
+            try:
+                begin_external_data_change(AuthoringContext(actor.user_id, problem.organization_id), problem.pk,
+                                           expected_revision=state.revision if state else 0,
+                                           data=data, cases=cases, files=files)
+            except AuthoringError as exc:
+                raise ImportPolygonError(exc.message) from exc
+
+    @manages_revision
     @transaction.atomic
     def update_or_create_problem(self):
+        from judge.models import Organization, ProblemAuthoringState, Submission
+        from judge.problem_authoring.policy import assert_mutation_allowed
+        from judge.problem_authoring.types import AuthoringError
+        organization_id = (Problem.objects.filter(code=self.meta['code'])
+                           .values_list('organization_id', flat=True).first())
+        if organization_id:
+            Organization.objects.select_for_update().get(pk=organization_id)
+        actors = self.meta.get('authors', []) + self.meta.get('curators', [])
+        list(Profile.objects.select_for_update().filter(pk__in=[actor.pk for actor in actors]).order_by('pk'))
+        existing = Problem.objects.select_for_update().filter(code=self.meta['code']).first()
+        if existing:
+            list(ProblemAuthoringState.objects.select_for_update().filter(problem=existing))
+            try:
+                assert_mutation_allowed(existing.pk, {'tests'})
+            except AuthoringError as exc:
+                raise ImportPolygonError(exc.message) from exc
+            if Submission.objects.filter(problem=existing).exclude(status__in=('D', 'CE', 'IE', 'AB')).exists():
+                raise ImportPolygonError('Wait for queued and active submissions before updating Polygon data.')
         self.log('Creating/Updating problem in database.')
         problem, _ = Problem.objects.update_or_create(code=self.meta['code'], defaults={
             'code': self.meta['code'],
@@ -946,6 +1013,11 @@ class PolygonImporter:
                 publish_on=timezone.now(),
                 content=self.meta['tutorial'].strip(),
             ).save()
+
+        if ProblemAuthoringState.objects.filter(problem=problem).exists() or getattr(
+                settings, 'PROBLEM_AUTHORING_ENABLED', False):
+            self._stage_authoring_data(problem)
+            return
 
         with open(self.meta['zipfile'], 'rb') as f:
             problem_data, _ = ProblemData.objects.update_or_create(problem=problem, defaults={

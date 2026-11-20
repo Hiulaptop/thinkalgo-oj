@@ -23,6 +23,11 @@ logger = logging.getLogger('judge.celery')
 
 # Load periodic tasks
 app.conf.beat_schedule = {
+    'recover-problem-authoring': {
+        'task': 'judge.tasks.problem_authoring.recover_authoring_operations',
+        'schedule': 60.0,
+        'options': {'expires': 60},
+    },
     'daily-queue-time-stats': {
         'task': 'judge.tasks.webhook.queue_time_stats',
         'schedule': crontab(minute=0, hour=0),

@@ -29,6 +29,17 @@ from martor.views import markdown_search_user
 
 admin.autodiscover()
 
+if getattr(settings, 'PROBLEM_AUTHORING_ENABLED', False):
+    from judge.problem_authoring.views import AuthoringDownloadView, OrganizationProblemAuthoringCreateView, \
+        ProblemAuthoringCreateView, ProblemAuthoringEditView
+    problem_create_view = ProblemAuthoringCreateView.as_view()
+    problem_edit_view = ProblemAuthoringEditView.as_view()
+    organization_problem_create_view = OrganizationProblemAuthoringCreateView.as_view()
+else:
+    problem_create_view = problem.ProblemCreate.as_view()
+    problem_edit_view = problem.ProblemEdit.as_view()
+    organization_problem_create_view = organization.ProblemCreateOrganization.as_view()
+
 SEND_ACTIVATION_EMAIL = getattr(settings, 'SEND_ACTIVATION_EMAIL', True)
 REGISTRATION_COMPLETE_TEMPLATE = 'registration/registration_complete.html' if SEND_ACTIVATION_EMAIL \
                                  else 'registration/activation_complete.html'
@@ -115,14 +126,14 @@ urlpatterns = [
     path('problems', include([
         path('/', problem.ProblemList.as_view(), name='problem_list'),
         path('/random/', problem.RandomProblem.as_view(), name='problem_random'),
-        path('/create', problem.ProblemCreate.as_view(), name='problem_create'),
+        path('/create', problem_create_view, name='problem_create'),
         path('/import-polygon', problem.ProblemImportPolygon.as_view(), name='problem_import_polygon'),
     ])),
 
     path('problem/<str:problem>', include([
         path('', problem.ProblemDetail.as_view(), name='problem_detail'),
         path('/comments', problem.ProblemComments.as_view(), name='problem_comments'),
-        path('/edit', problem.ProblemEdit.as_view(), name='problem_edit'),
+        path('/edit', problem_edit_view, name='problem_edit'),
         path('/edit-type-group', problem.ProblemEditTypeGroup.as_view(), name='problem_edit_type_group'),
         path('/editorial', problem.ProblemSolution.as_view(), name='problem_editorial'),
         path('/editorial/comments', problem.ProblemSolutionComments.as_view(), name='problem_editorial_comments'),
@@ -321,7 +332,7 @@ urlpatterns = [
         path('/contests/', organization.ContestListOrganization.as_view(), name='contest_list_organization'),
         path('/submissions/',
              paged_list_view(organization.SubmissionListOrganization, 'submission_list_organization')),
-        path('/problem-create', organization.ProblemCreateOrganization.as_view(), name='problem_create_organization'),
+        path('/problem-create', organization_problem_create_view, name='problem_create_organization'),
         path('/contest-create', organization.ContestCreateOrganization.as_view(), name='contest_create_organization'),
 
         path('/request', organization.RequestJoinOrganization.as_view(), name='request_organization'),
@@ -470,6 +481,10 @@ urlpatterns = [
 
     path('misc_config/', MiscConfigEdit.as_view(), name='misc_config'),
 ]
+
+if getattr(settings, 'PROBLEM_AUTHORING_ENABLED', False):
+    urlpatterns.insert(0, path('problems/authoring/uploads/<uuid:upload_id>', AuthoringDownloadView.as_view(),
+                               name='problem_authoring_download'))
 
 
 handler404 = 'judge.views.error.error404'

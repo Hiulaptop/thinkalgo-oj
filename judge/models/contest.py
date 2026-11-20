@@ -777,6 +777,20 @@ class ContestProblem(models.Model):
                                           validators=[MinValueOrNoneValidator(1, _('Why include a problem you '
                                                                                    "can't submit to?"))])
 
+    def clean(self):
+        super().clean()
+        if self.problem_id:
+            from judge.problem_authoring.policy import assert_can_attach_to_contest
+            from judge.problem_authoring.types import AuthoringError
+            try:
+                assert_can_attach_to_contest(self.problem_id)
+            except AuthoringError as exc:
+                raise ValidationError({'problem': exc.message}) from exc
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        return super().save(*args, **kwargs)
+
     class Meta:
         unique_together = ('problem', 'contest')
         verbose_name = _('contest problem')

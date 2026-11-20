@@ -1017,6 +1017,7 @@
     {% endif %}
     <form action="" method="POST" enctype="multipart/form-data">
         {% csrf_token %}
+        <input type="hidden" name="authoring_revision" value="{{ authoring_revision }}">
         {{ cases_formset.management_form }}
         <table class="table">
             {{ data_form.as_table() }}
