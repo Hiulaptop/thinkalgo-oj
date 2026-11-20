@@ -117,6 +117,38 @@ class TestMarkdown(SimpleTestCase):
         self.assertHTMLEqual(markdown('<style>a { color: red; }</style>', self.BLEACHED_STYLE),
                              '<p>&lt;style&gt;a { color: red; }&lt;/style&gt;</p>')
 
+    def test_mathjax_subscripts_survive_markdown_emphasis(self):
+        source = (r'Điểm trung bình là ~\frac{a_1 + \dots + a_n}{n}~; '
+                  r'tìm ~\left|a_i+a_j+a_k-3\times\text{điểm trung bình}\right|~ nhỏ nhất.')
+        tree = fragments_to_tree(markdown(source, self.BLEACHED_STYLE))
+        self.assertEqual(tree.text_content().strip(), source)
+        self.assertFalse(tree.xpath('.//em | .//strong'))
+
+    def test_mathjax_formulas_do_not_join_emphasis_across_delimiters(self):
+        source = r'Dòng 2: ~a_1, a_2, \dots, a_n~ (~1 \le a_i \le 10^6~).'
+        tree = fragments_to_tree(markdown(source, self.BLEACHED_STYLE))
+        self.assertEqual(tree.text_content().strip(), source)
+        self.assertFalse(tree.xpath('.//em'))
+
+    def test_parenthesized_mathjax_delimiters_and_markdown_outside_math(self):
+        source = r'_Nhấn mạnh_ và \(a_i * b_j < c_k\).'
+        tree = fragments_to_tree(markdown(source, self.BLEACHED_STYLE))
+        self.assertEqual(tree.text_content().strip(), r'Nhấn mạnh và \(a_i * b_j < c_k\).')
+        self.assertEqual([element.text for element in tree.xpath('.//em')], ['Nhấn mạnh'])
+
+    def test_math_preservation_does_not_inject_html(self):
+        source = r'~a_i <img src=x onerror=alert(1)> + b_j~'
+        tree = fragments_to_tree(markdown(source, self.BLEACHED_STYLE))
+        self.assertEqual(tree.text_content().strip(), source)
+        self.assertFalse(tree.xpath('.//img | .//script | .//em'))
+
+    def test_math_preservation_keeps_code_strikethrough_and_dollar_math(self):
+        source = '`~a_i + b_j~` and ~~removed~~ and $a_i + b_j$'
+        tree = fragments_to_tree(markdown(source, self.BLEACHED_STYLE))
+        self.assertEqual(tree.xpath('.//code')[0].text, '~a_i + b_j~')
+        self.assertEqual(tree.xpath('.//s')[0].text, 'removed')
+        self.assertTrue(tree.xpath('.//*[local-name()="math"]'))
+
     def test_bleach_mathml(self):
         self.assertHTMLEqual(markdown(MATHML_N, self.BLEACHED_STYLE), MATHML_N)
         cleaner = get_cleaner(self.BLEACHED_STYLE, None)
